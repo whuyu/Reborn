@@ -19,7 +19,7 @@
           </div>
         </div>
         <div>
-          <img class="love-img" :src="$store.state.sysConfig['webStaticResourcePrefix'] + 'assets/loveLike.svg'" alt="心心">
+          <img class="love-img" src="/src/assets/images/loveLike.svg" alt="心心">
         </div>
         <div>
           <el-avatar class="love-avatar" :src="love.womanCover"></el-avatar>
@@ -265,7 +265,7 @@
                  center>
         <div>
           <div class="form-main">
-            <img :src="$store.state.sysConfig['webStaticResourcePrefix'] + 'assets/friendLetterMiddle.jpg'" style="width: 100%"/>
+            <img :src="'/src/assets/images/friendLetterMiddle.jpg'" style="width: 100%"/>
             <div>
               <div>
                 <div class="myCenter form-friend">

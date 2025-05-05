@@ -3,7 +3,7 @@
     <div class="myAside-container">
       <!-- 网站信息 -->
       <div v-if="!$common.mobile()" class="card-content1 shadow-box background-opacity">
-        <el-avatar style="margin-top: 20px" class="user-avatar" :size="120" :src="webInfo.avatar"></el-avatar>
+        <el-avatar style="margin-top: 20px" class="user-avatar" :size="120" :src="require('@/assets/images/default-avatar.png')"></el-avatar>
         <div class="web-name">{{webInfo.webName}}</div>
         <div class="web-info">
           <div class="blog-info-box">
@@ -19,9 +19,6 @@
             <span class="blog-info-num">{{ webInfo.historyAllCount }}</span>
           </div>
         </div>
-        <a class="collection-btn" @click="showTip()">
-          <i class="el-icon-star-off" style="margin-right: 2px"></i>朋友圈
-        </a>
       </div>
 
       <!-- 搜索 -->
@@ -242,9 +239,6 @@
               type: "error"
             });
           });
-      },
-      showTip() {
-        this.$router.push({path: '/weiYan'});
       }
     }
   }

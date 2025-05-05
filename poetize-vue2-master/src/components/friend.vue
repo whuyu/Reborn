@@ -44,13 +44,13 @@
                   </div>
                 </div>
                 <div>
-                  <img :src="$store.state.sysConfig['webStaticResourcePrefix'] + 'assets/friendLetterBiLi.png'" style="width: 100%;margin: 5px auto"/>
+                  <img :src="'/src/assets/images/friendLetterBiLi.png'" style="width: 100%;margin: 5px auto"/>
                 </div>
                 <p style="font-size: 12px;text-align: center;color: #999">欢迎交换友链</p>
               </div>
             </div>
           </div>
-          <img class="after-img" :src="$store.state.sysConfig['webStaticResourcePrefix'] + 'assets/friendLetterBottom.png'" style="width: 100%"/>
+          <img class="after-img" :src="'/src/assets/images/friendLetterBottom.png'" style="width: 100%"/>
         </div>
 
         <div style="font-size: 20px;font-weight: bold;margin-top: 40px">🌸本站信息</div>

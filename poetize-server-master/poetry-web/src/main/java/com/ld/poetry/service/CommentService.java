@@ -13,8 +13,6 @@ import com.ld.poetry.vo.CommentVO;
  * 文章评论表 服务类
  * </p>
  *
- * @author sara
- * @since 2021-08-13
  */
 public interface CommentService extends IService<Comment> {
 

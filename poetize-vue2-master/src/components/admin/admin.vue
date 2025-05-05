@@ -30,11 +30,10 @@
 
     created() {
       let sysConfig = this.$store.state.sysConfig;
-      if (!this.$common.isEmpty(sysConfig) && !this.$common.isEmpty(sysConfig['webStaticResourcePrefix'])) {
+      if (!this.$common.isEmpty(sysConfig)) {
         let root = document.querySelector(":root");
-        let webStaticResourcePrefix = sysConfig['webStaticResourcePrefix'];
-        root.style.setProperty("--backgroundPicture", "url(" + webStaticResourcePrefix + "assets/backgroundPicture.jpg)");
-        const font = new FontFace("poetize-font", "url(" + webStaticResourcePrefix + "assets/font.woff2)");
+        root.style.setProperty("--backgroundPicture", "url(@/assets/images/backgroundPicture.jpg)");
+        const font = new FontFace("poetize-font", "url(@/assets/fonts/fontawesome-webfont.woff2)");
         font.load();
         document.fonts.add(font);
       }

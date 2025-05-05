@@ -14,7 +14,7 @@
                   class="background-image-index"
                   v-once
                   lazy
-                  :src="!$common.isEmpty($store.state.webInfo.backgroundImage)?$store.state.webInfo.backgroundImage:$store.state.webInfo.randomCover[Math.floor(Math.random() * $store.state.webInfo.randomCover.length)]"
+                  :src="require('@/assets/images/backgroundPicture.jpg')"
                   fit="cover">
           <div slot="error" class="image-slot background-image-index-error"></div>
         </el-image>

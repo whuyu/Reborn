@@ -18,4 +18,13 @@ public class ImMessage {
     private String avatar;
 
     private String username;
+
+    // 音视频通话相关字段
+    private String callType; // video 或 audio
+    
+    private Object offer; // WebRTC offer
+    
+    private Object answer; // WebRTC answer
+    
+    private Object candidate; // ICE candidate
 }

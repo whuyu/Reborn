@@ -14,9 +14,6 @@ import java.util.Map;
  * <p>
  * 文章表 服务类
  * </p>
- *
- * @author sara
- * @since 2021-08-13
  */
 public interface ArticleService extends IService<Article> {
 

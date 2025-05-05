@@ -30,53 +30,10 @@
               </div>
             </li>
 
-            <el-dropdown :hide-timeout="500" placement="bottom">
-              <li>
-                <div class="my-menu">
-                  📒 <span>记录</span>
-                </div>
-              </li>
-              <el-dropdown-menu slot="dropdown">
-                <el-dropdown-item v-for="(sort, index) in sortInfo" :key="index">
-                  <div @click="$router.push({path: '/sort', query: {sortId: sort.id}})">
-                    {{sort.sortName}}
-                  </div>
-                </el-dropdown-item>
-              </el-dropdown-menu>
-            </el-dropdown>
-
-            <!-- 家 -->
-            <li @click="$router.push({path: '/love'})">
-              <div class="my-menu">
-                ❤️‍🔥 <span>家</span>
-              </div>
-            </li>
-
-<!--            &lt;!&ndash; 旅拍 &ndash;&gt;-->
-<!--            <li @click="$router.push({path: '/travel'})">-->
-<!--              <div class="my-menu">-->
-<!--                🌏 <span>旅拍</span>-->
-<!--              </div>-->
-<!--            </li>-->
-
-            <!-- 百宝箱 -->
-            <li @click="$router.push({path: '/favorite'})">
-              <div class="my-menu">
-                🧰 <span>百宝箱</span>
-              </div>
-            </li>
-
-            <!-- 留言 -->
-            <li @click="$router.push({path: '/message'})">
-              <div class="my-menu">
-                📪 <span>留言</span>
-              </div>
-            </li>
-
-            <!-- 聊天室 -->
+            <!-- 心理咨询 -->
             <li @click="goIm()">
               <div class="my-menu">
-                💬 <span>联系我</span>
+                💬 <span>心理咨询</span>
               </div>
             </li>
 
@@ -92,7 +49,7 @@
               <el-dropdown placement="bottom">
                 <el-avatar class="user-avatar" :size="36"
                            style="margin-top: 12px"
-                           :src="!$common.isEmpty($store.state.currentUser)?$store.state.currentUser.avatar:$store.state.webInfo.avatar">
+                           :src="require('@/assets/images/default-avatar.png')">
                 </el-avatar>
 
                 <el-dropdown-menu slot="dropdown">
@@ -181,52 +138,10 @@
             </div>
           </li>
 
-          <li>
-            <div>
-              📒 <span>记录</span>
-            </div>
-            <div>
-              <div v-for="(menu, index) in sortInfo"
-                   :key="index"
-                   class="sortMenu"
-                   @click="smallMenu({path: '/sort', query: {sortId: menu.id}})">
-                {{menu.sortName}}
-              </div>
-            </div>
-          </li>
-
-          <!-- 家 -->
-          <li @click="smallMenu({path: '/love'})">
-            <div>
-              ❤️‍🔥 <span>家</span>
-            </div>
-          </li>
-
-<!--          &lt;!&ndash; 旅拍 &ndash;&gt;-->
-<!--          <li @click="smallMenu({path: '/travel'})">-->
-<!--            <div>-->
-<!--              🌏 <span>旅拍</span>-->
-<!--            </div>-->
-<!--          </li>-->
-
-          <!-- 百宝箱 -->
-          <li @click="smallMenu({path: '/favorite'})">
-            <div>
-              🧰 <span>百宝箱</span>
-            </div>
-          </li>
-
-          <!-- 留言 -->
-          <li @click="smallMenu({path: '/message'})">
-            <div>
-              📪 <span>留言</span>
-            </div>
-          </li>
-
           <!-- 聊天室 -->
           <li @click="goIm()">
             <div>
-              💬 <span>联系我</span>
+              💬 <span>心理咨询</span>
             </div>
           </li>
 
@@ -428,17 +343,16 @@
       },
       buildCssPicture() {
         let root = document.querySelector(":root");
-        let webStaticResourcePrefix = this.$store.state.sysConfig['webStaticResourcePrefix'];
-        root.style.setProperty("--commentURL", "url(" + webStaticResourcePrefix + "assets/commentURL.png)");
-        root.style.setProperty("--springBg", "url(" + webStaticResourcePrefix + "assets/springBg.png)");
-        root.style.setProperty("--admireImage", "url(" + webStaticResourcePrefix + "assets/admireImage.jpg)");
-        root.style.setProperty("--toTop", "url(" + webStaticResourcePrefix + "assets/toTop.png)");
-        root.style.setProperty("--bannerWave1", "url(" + webStaticResourcePrefix + "assets/bannerWave1.png) repeat-x");
-        root.style.setProperty("--bannerWave2", "url(" + webStaticResourcePrefix + "assets/bannerWave2.png) repeat-x");
-        root.style.setProperty("--backgroundPicture", "url(" + webStaticResourcePrefix + "assets/backgroundPicture.jpg)");
-        root.style.setProperty("--toolbar", "url(" + webStaticResourcePrefix + "assets/toolbar.jpg)");
-        root.style.setProperty("--love", "url(" + webStaticResourcePrefix + "assets/love.jpg)");
-        const font = new FontFace("poetize-font", "url(" + webStaticResourcePrefix + "assets/font.woff2)");
+        root.style.setProperty("--commentURL", "url(/src/assets/images/commentURL.png)");
+        root.style.setProperty("--springBg", "url(/src/assets/images/springBg.png)");
+        root.style.setProperty("--admireImage", "url(/src/assets/images/admireImage.jpg)");
+        root.style.setProperty("--toTop", "url(/src/assets/images/toTop.png)");
+        root.style.setProperty("--bannerWave1", "url(/src/assets/images/bannerWave1.png) repeat-x");
+        root.style.setProperty("--bannerWave2", "url(/src/assets/images/bannerWave2.png) repeat-x");
+        root.style.setProperty("--backgroundPicture", "url(/src/assets/images/backgroundPicture.jpg)");
+        root.style.setProperty("--toolbar", "url(/src/assets/images/toolbar.jpg)");
+        root.style.setProperty("--love", "url(/src/assets/images/love.jpg)");
+        const font = new FontFace("poetize-font", "url(/src/assets/images/font.woff2)");
         font.load();
         document.fonts.add(font);
       },

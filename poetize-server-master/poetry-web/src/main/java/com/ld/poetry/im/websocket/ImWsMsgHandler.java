@@ -132,6 +132,7 @@ public class ImWsMsgHandler implements IWsMsgHandler {
             return null;
         }
         try {
+            log.info("收到信令消息: {}", text);
             ImMessage imMessage = JSON.parseObject(text, ImMessage.class);
 
             String content = StringUtil.removeHtml(imMessage.getContent());
@@ -141,8 +142,31 @@ public class ImWsMsgHandler implements IWsMsgHandler {
             imMessage.setContent(content);
 
             WsResponse wsResponse = WsResponse.fromText(JSON.toJSONString(imMessage), ImConfigConst.CHARSET);
+            
+            // 处理音视频通话相关消息
+            if (imMessage.getMessageType().intValue() >= ImEnum.MESSAGE_TYPE_CALL_OFFER.getCode() && 
+                imMessage.getMessageType().intValue() <= ImEnum.MESSAGE_TYPE_CALL_ICE.getCode()) {
+                log.info("收到音视频通话消息，准备转发...");
+                log.info("消息类型: {}", imMessage.getMessageType());
+                log.info("发送方ID: {}", imMessage.getFromId());
+                log.info("接收方ID: {}", imMessage.getToId());
+                log.info("消息内容: {}", imMessage.getContent());
+                
+                // 检查目标用户是否在线
+                SetWithLock<ChannelContext> targetUser = Tio.getByUserid(channelContext.tioConfig, imMessage.getToId().toString());
+                if (targetUser != null && targetUser.size() > 0) {
+                    log.info("目标用户在线，准备发送消息");
+                    Tio.sendToUser(channelContext.tioConfig, imMessage.getToId().toString(), wsResponse);
+                    log.info("消息已转发");
+                } else {
+                    log.warn("目标用户不在线，无法发送消息");
+                }
+                //return null;
+            }
+
             if (imMessage.getMessageType().intValue() == ImEnum.MESSAGE_TYPE_MSG_SINGLE.getCode()) {
                 //单聊
+                log.info("收到单聊消息，准备转发...");
                 ImChatUserMessage userMessage = new ImChatUserMessage();
                 userMessage.setFromId(imMessage.getFromId());
                 userMessage.setToId(imMessage.getToId());
@@ -175,7 +199,6 @@ public class ImWsMsgHandler implements IWsMsgHandler {
         } catch (Exception e) {
             log.error("解析消息失败：{}", e.getMessage());
         }
-        //返回值是要发送给客户端的内容，一般都是返回null
         return null;
     }
 }

@@ -4,9 +4,7 @@
       <!-- 封面 -->
       <div class="favorite-header my-animation-slide-top">
         <!-- 背景图片 -->
-        <video class="index-video" autoplay="autoplay" muted="muted" loop="loop"
-               :src="$store.state.sysConfig['webStaticResourcePrefix'] + 'assets/backgroundVideo.mp4'">
-        </video>
+        <div class="index-bg"></div>
         <div style="position: absolute;left: 0;top: 0;padding: 5px 20px">
           <!-- 标题 -->
           <div style="color: var(--white);margin: 0 10px">
@@ -185,10 +183,13 @@
     max-width: 1200px;
   }
 
-  .index-video {
+  .index-bg {
+    position: absolute;
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    background-image: url('../assets/images/backgroundPicture.jpg');
+    background-size: cover;
+    background-position: center;
   }
 
   .favorite-image::before {

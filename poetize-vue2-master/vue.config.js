@@ -18,6 +18,12 @@ module.exports = {
         threshold: 10240,
         deleteOriginalAssets: false
       })
-    ]
+    ],
+    resolve: {
+      alias: {
+        '@': '/src',
+        'assets': '/src/assets'
+      }
+    }
   }
 }

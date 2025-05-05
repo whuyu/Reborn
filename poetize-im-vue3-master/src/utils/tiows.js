@@ -7,24 +7,25 @@ import ReconnectingWebSocket from 'reconnecting-websocket';
  * @param {*} paramStr 加在ws url后面的请求参数，形如：name=张三&id=12
  * @param {*} binaryType 'blob' or 'arraybuffer'
  */
-export default function (ws_protocol, ip, port, paramStr, binaryType) {
+class Tiows {
+  constructor(ws_protocol, ip, port, paramStr, binaryType) {
+    this.ws_protocol = ws_protocol;
+    this.ip = ip;
+    this.port = port;
+    this.paramStr = paramStr;
+    this.binaryType = binaryType;
 
-  this.ws_protocol = ws_protocol;
-  this.ip = ip;
-  this.port = port;
-  this.paramStr = paramStr;
-  this.binaryType = binaryType;
-
-  if (port === "") {
-    this.url = ws_protocol + '://' + ip + '/socket';
-  } else {
-    this.url = ws_protocol + '://' + ip + ":" + port + '/socket';
+    if (port === "") {
+      this.url = ws_protocol + '://' + ip + '/socket';
+    } else {
+      this.url = ws_protocol + '://' + ip + ":" + port + '/socket';
+    }
+    if (paramStr) {
+      this.url += '?' + paramStr;
+    }
   }
-  if (paramStr) {
-    this.url += '?' + paramStr;
-  }
 
-  this.connect = () => {
+  connect() {
     let ws = new ReconnectingWebSocket(this.url);
     this.ws = ws;
     ws.binaryType = this.binaryType;
@@ -42,7 +43,9 @@ export default function (ws_protocol, ip, port, paramStr, binaryType) {
     }
   }
 
-  this.send = (data) => {
+  send(data) {
     this.ws.send(data);
   }
 }
+
+export default Tiows;

@@ -1,17 +1,39 @@
 <template>
   <div>
     <!-- title -->
-    <div style="height: 60px;background-color: var(--maxWhite)">
+    <div style="height: 60px;background-color: var(--maxWhite);display: flex;align-items: center;justify-content: space-between;padding: 0 20px;">
       <template v-if="!$common.isEmpty(currentChatFriendId)">
-        <span style="line-height: 60px;margin-left: 20px;font-size: 18px">
+        <span style="font-size: 18px">
           {{friends[currentChatFriendId].remark}}
         </span>
+        <div>
+          <n-button @click="startVideoCall" type="primary" style="margin-right: 10px">
+            <template #icon>
+              <svg viewBox="0 0 1024 1024" width="16" height="16">
+                <path d="M512 0C229.2 0 0 229.2 0 512s229.2 512 512 512 512-229.2 512-512S794.8 0 512 0z m0 960C264.6 960 64 759.4 64 512S264.6 64 512 64s448 200.6 448 448-200.6 448-448 448z" fill="#FFFFFF"/>
+                <path d="M512 128c-212.1 0-384 171.9-384 384s171.9 384 384 384 384-171.9 384-384-171.9-384-384-384z m0 704c-176.7 0-320-143.3-320-320s143.3-320 320-320 320 143.3 320 320-143.3 320-320 320z" fill="#FFFFFF"/>
+                <path d="M512 256c-141.4 0-256 114.6-256 256s114.6 256 256 256 256-114.6 256-256-114.6-256-256-256z m0 448c-106 0-192-86-192-192s86-192 192-192 192 86 192 192-86 192-192 192z" fill="#FFFFFF"/>
+              </svg>
+            </template>
+            视频通话
+          </n-button>
+          <n-button @click="startAudioCall" type="info">
+            <template #icon>
+              <svg viewBox="0 0 1024 1024" width="16" height="16">
+                <path d="M512 0C229.2 0 0 229.2 0 512s229.2 512 512 512 512-229.2 512-512S794.8 0 512 0z m0 960C264.6 960 64 759.4 64 512S264.6 64 512 64s448 200.6 448 448-200.6 448-448 448z" fill="#FFFFFF"/>
+                <path d="M512 128c-212.1 0-384 171.9-384 384s171.9 384 384 384 384-171.9 384-384-171.9-384-384-384z m0 704c-176.7 0-320-143.3-320-320s143.3-320 320-320 320 143.3 320 320-143.3 320-320 320z" fill="#FFFFFF"/>
+                <path d="M512 256c-141.4 0-256 114.6-256 256s114.6 256 256 256 256-114.6 256-256-114.6-256-256-256z m0 448c-106 0-192-86-192-192s86-192 192-192 192 86 192 192-86 192-192 192z" fill="#FFFFFF"/>
+              </svg>
+            </template>
+            语音通话
+          </n-button>
+        </div>
       </template>
       <template v-else-if="!$common.isEmpty(currentChatGroupId)">
-        <span style="line-height: 60px;margin-left: 20px;font-size: 18px">
+        <span style="font-size: 18px">
           {{groups[currentChatGroupId].groupName}}
         </span>
-        <span style="line-height: 60px;margin-left: 20px;font-size: 12px;color: var(--greyFont)">
+        <span style="font-size: 12px;color: var(--greyFont)">
           当前在线人数：4
         </span>
       </template>
@@ -355,255 +377,339 @@
     </div>
 
     <!-- 聊天图片弹出框 -->
-    <n-modal v-model:show="showPictureDialog">
-      <div style="padding: 40px;background: var(--white);border-radius: 5px;width: 20%">
-        <div style="margin: 0 0 25px;text-align: center;font-size: 18px">上传图片</div>
-        <uploadPicture :prefix="picturePrefix" @addPicture="addPicture" :maxSize="2"
-                       :maxNumber="1"></uploadPicture>
-      </div>
-    </n-modal>
+    <div class="showPictureDialog" v-if="showPictureDialog">
+      <uploadPicture :prefix="picturePrefix" @addPicture="addPicture" :maxSize="2"
+                     :maxNumber="1"></uploadPicture>
+    </div>
   </div>
 </template>
 
 <script>
-  import {useStore} from 'vuex';
+import { useStore } from 'vuex'
+import { useDialog } from 'naive-ui'
+import { nextTick, reactive, getCurrentInstance, onMounted, onBeforeUnmount, watchEffect, toRefs } from 'vue'
+import { ElMessage } from 'element-plus'
+import emoji from './emoji'
+import uploadPicture from './uploadPicture'
 
-  import {useDialog} from 'naive-ui';
-
-  import {nextTick} from 'vue';
-
-  import {ElMessage} from "element-plus";
-
-  import emoji from "./emoji";
-  import uploadPicture from "./uploadPicture";
-  import {reactive, getCurrentInstance, onMounted, onBeforeUnmount, watchEffect, toRefs} from 'vue';
-
-  export default {
-    components: {
-      uploadPicture,
-      emoji
+export default {
+  components: {
+    uploadPicture,
+    emoji
+  },
+  props: {
+    currentChatFriendId: {
+      type: Number
     },
-    props: {
-      currentChatFriendId: {
-        type: Number
-      },
-      currentChatGroupId: {
-        type: Number
-      },
-      friends: {
-        type: Object
-      },
-      groups: {
-        type: Object
-      },
-      imMessages: {
-        type: Object
-      },
-      groupMessages: {
-        type: Object
-      },
-      imageList: {
-        type: Array
-      }
+    currentChatGroupId: {
+      type: Number
     },
-    setup(props, context) {
-      const globalProperties = getCurrentInstance().appContext.config.globalProperties;
-      const $common = globalProperties.$common;
-      const $http = globalProperties.$http;
-      const $constant = globalProperties.$constant;
-      const store = useStore();
-      const dialog = useDialog();
+    friends: {
+      type: Object
+    },
+    groups: {
+      type: Object
+    },
+    imMessages: {
+      type: Object
+    },
+    groupMessages: {
+      type: Object
+    },
+    imageList: {
+      type: Array
+    }
+  },
+  setup (props, context) {
+    console.log('Chat组件初始化...')
+    console.log('当前聊天好友ID:', props.currentChatFriendId)
+    console.log('当前聊天群组ID:', props.currentChatGroupId)
 
-      let data = reactive({
-        //发送消息
-        msg: '',
+    const globalProperties = getCurrentInstance().appContext.config.globalProperties
+    const $common = globalProperties.$common
+    const $http = globalProperties.$http
+    const $constant = globalProperties.$constant
+    const store = useStore()
+    const dialog = useDialog()
 
-        //聊天图片
-        showPictureDialog: false,
-        picturePrefix: '',
-        showPopoverImage: false
-      })
+    const data = reactive({
+      // 发送消息
+      msg: '',
 
-      function sendPicture() {
-        if (!$common.isEmpty(props.currentChatFriendId)) {
-          data.picturePrefix = 'im/friendMessage';
-          data.showPictureDialog = true;
-        } else if (!$common.isEmpty(props.currentChatGroupId)) {
-          data.picturePrefix = 'im/groupMessage';
-          data.showPictureDialog = true;
-        }
-      }
+      // 聊天图片
+      showPictureDialog: false,
+      picturePrefix: '',
+      showPopoverImage: false,
 
-      function addPicture(res) {
-        data.msg += "[" + store.state.currentUser.username + "," + res + "]";
-        data.showPictureDialog = false;
-      }
+      // 音视频通话相关
+      showVideoCall: false,
+      callType: 'video',
+      isCaller: false,
+      currentCallTargetId: null
+    })
 
-      function openFriendCircle(userId, avatar, username) {
-        context.emit("openFriendCircle", userId, avatar, username);
-      }
+    // 添加音视频通话消息监听
+    onMounted(() => {
+      console.log('Chat组件已挂载')
+      console.log('当前状态:', data)
+    })
 
-      function addEmoji(key) {
-        data.msg += key;
-      }
+    onBeforeUnmount(() => {
+      // 移除事件监听
+    })
 
-      function sendImage(url) {
-        data.msg += "[" + store.state.currentUser.username + "," + url + "]";
-        data.showPopoverImage = false;
-        doSend();
-      }
-
-      function sendPoetry(type) {
-        if (type === 1) {
-          sendGuShi();
-        } else if (type === 2) {
-          sendYiyan();
-        } else if (type === 3) {
-          sendDog();
-        } else if (type === 4) {
-          sendJitang();
-        } else if (type === 5) {
-          sendShehui();
-        }
-      }
-
-      function sendGuShi() {
-        let xhr = new XMLHttpRequest();
-        xhr.open('get', $constant.jinrishici);
-        xhr.onreadystatechange = function () {
-          if (xhr.readyState === 4) {
-            let guShi = JSON.parse(xhr.responseText).content;
-            if (!$common.isEmpty(guShi)) {
-              data.msg = guShi;
-              doSend()
-            }
-          }
-        };
-        xhr.send();
-      }
-
-      function sendYiyan() {
-        let xhr = new XMLHttpRequest();
-        xhr.open('get', $constant.yiyan);
-        xhr.onreadystatechange = function () {
-          if (xhr.readyState === 4) {
-            let yiyan = xhr.responseText;
-            if (!$common.isEmpty(yiyan)) {
-              data.msg = yiyan.substring(1, yiyan.length - 1);
-              doSend()
-            }
-          }
-        };
-        xhr.send();
-      }
-
-      function sendDog() {
-        let xhr = new XMLHttpRequest();
-        xhr.open('get', $constant.dog);
-        xhr.onreadystatechange = function () {
-          if (xhr.readyState === 4) {
-            let dog = xhr.responseText;
-            if (!$common.isEmpty(dog)) {
-              data.msg = dog.substring(1, dog.length - 1);
-              doSend()
-            }
-          }
-        };
-        xhr.send();
-      }
-
-      function sendJitang() {
-        let xhr = new XMLHttpRequest();
-        xhr.open('get', $constant.jitang);
-        xhr.onreadystatechange = function () {
-          if (xhr.readyState === 4) {
-            let jitang = xhr.responseText;
-            if (!$common.isEmpty(jitang)) {
-              data.msg = jitang.substring(1, jitang.length - 1);
-              doSend()
-            }
-          }
-        };
-        xhr.send();
-      }
-
-      function sendShehui() {
-        let xhr = new XMLHttpRequest();
-        xhr.open('get', $constant.shehui);
-        xhr.onreadystatechange = function () {
-          if (xhr.readyState === 4) {
-            let shehui = xhr.responseText;
-            if (!$common.isEmpty(shehui)) {
-              data.msg = shehui.substring(1, shehui.length - 1);
-              doSend()
-            }
-          }
-        };
-        xhr.send();
-      }
-
-      function send(e) {
-        if (e && (e.ctrlKey || e.shiftKey) && e.keyCode === 13) {
-          e.returnValue = false;
-          data.msg = data.msg + '\n';
-        } else if (e && e.keyCode === 13) {
-          e.returnValue = false;
-          doSend();
-        }
-      }
-
-      function doSend() {
-        if ($common.isEmpty(data.msg)) {
-          return;
-        }
-
-        if (!$common.isEmpty(props.currentChatFriendId)) {
-          let message = {
-            messageType: 1,
-            content: data.msg,
-            fromId: store.state.currentUser.id,
-            toId: props.currentChatFriendId,
-            avatar: store.state.currentUser.avatar
-          }
-          let success = false;
-          context.emit("sendMsg", JSON.stringify(message), val => {
-            success = val;
-          });
-          if (success) {
-            data.msg = '';
-          }
-        } else if (!$common.isEmpty(props.currentChatGroupId)) {
-          let message = {
-            messageType: 2,
-            content: data.msg,
-            fromId: store.state.currentUser.id,
-            groupId: props.currentChatGroupId,
-            avatar: store.state.currentUser.avatar,
-            username: store.state.currentUser.username
-          }
-          let success = false;
-          context.emit("sendMsg", JSON.stringify(message), val => {
-            success = val;
-          });
-          if (success) {
-            data.msg = '';
-          }
-        }
-      }
-
-      return {
-        ...toRefs(data),
-        openFriendCircle,
-        addEmoji,
-        addPicture,
-        sendPicture,
-        sendImage,
-        sendPoetry,
-        send,
-        doSend
+    function sendPicture () {
+      if (!$common.isEmpty(props.currentChatFriendId)) {
+        data.picturePrefix = 'im/friendMessage'
+        data.showPictureDialog = true
+      } else if (!$common.isEmpty(props.currentChatGroupId)) {
+        data.picturePrefix = 'im/groupMessage'
+        data.showPictureDialog = true
       }
     }
+
+    function addPicture (res) {
+      data.msg += '[' + store.state.currentUser.username + ',' + res + ']'
+      data.showPictureDialog = false
+    }
+
+    function openFriendCircle (userId, avatar, username) {
+      context.emit('openFriendCircle', userId, avatar, username)
+    }
+
+    function addEmoji (key) {
+      data.msg += key
+    }
+
+    function sendImage (url) {
+      data.msg += '[' + store.state.currentUser.username + ',' + url + ']'
+      data.showPopoverImage = false
+      doSend()
+    }
+
+    function sendPoetry (type) {
+      if (type === 1) {
+        sendGuShi()
+      } else if (type === 2) {
+        sendYiyan()
+      } else if (type === 3) {
+        sendDog()
+      } else if (type === 4) {
+        sendJitang()
+      } else if (type === 5) {
+        sendShehui()
+      }
+    }
+
+    function sendGuShi () {
+      const xhr = new XMLHttpRequest()
+      xhr.open('get', $constant.jinrishici)
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4) {
+          const guShi = JSON.parse(xhr.responseText).content
+          if (!$common.isEmpty(guShi)) {
+            data.msg = guShi
+            doSend()
+          }
+        }
+      }
+      xhr.send()
+    }
+
+    function sendYiyan () {
+      const xhr = new XMLHttpRequest()
+      xhr.open('get', $constant.yiyan)
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4) {
+          const yiyan = xhr.responseText
+          if (!$common.isEmpty(yiyan)) {
+            data.msg = yiyan.substring(1, yiyan.length - 1)
+            doSend()
+          }
+        }
+      }
+      xhr.send()
+    }
+
+    function sendDog () {
+      const xhr = new XMLHttpRequest()
+      xhr.open('get', $constant.dog)
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4) {
+          const dog = xhr.responseText
+          if (!$common.isEmpty(dog)) {
+            data.msg = dog.substring(1, dog.length - 1)
+            doSend()
+          }
+        }
+      }
+      xhr.send()
+    }
+
+    function sendJitang () {
+      const xhr = new XMLHttpRequest()
+      xhr.open('get', $constant.jitang)
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4) {
+          const jitang = xhr.responseText
+          if (!$common.isEmpty(jitang)) {
+            data.msg = jitang.substring(1, jitang.length - 1)
+            doSend()
+          }
+        }
+      }
+      xhr.send()
+    }
+
+    function sendShehui () {
+      const xhr = new XMLHttpRequest()
+      xhr.open('get', $constant.shehui)
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4) {
+          const shehui = xhr.responseText
+          if (!$common.isEmpty(shehui)) {
+            data.msg = shehui.substring(1, shehui.length - 1)
+            doSend()
+          }
+        }
+      }
+      xhr.send()
+    }
+
+    function send (e) {
+      if (e && (e.ctrlKey || e.shiftKey) && e.keyCode === 13) {
+        e.returnValue = false
+        data.msg = data.msg + '\n'
+      } else if (e && e.keyCode === 13) {
+        e.returnValue = false
+        doSend()
+      }
+    }
+
+    function doSend () {
+      if ($common.isEmpty(data.msg)) {
+        return
+      }
+
+      if (!$common.isEmpty(props.currentChatFriendId)) {
+        const message = {
+          messageType: 1,
+          content: data.msg,
+          fromId: store.state.currentUser.id,
+          toId: props.currentChatFriendId,
+          avatar: store.state.currentUser.avatar
+        }
+        let success = false
+        context.emit('sendMsg', JSON.stringify(message), val => {
+          success = val
+        })
+        if (success) {
+          data.msg = ''
+        }
+      } else if (!$common.isEmpty(props.currentChatGroupId)) {
+        const message = {
+          messageType: 2,
+          content: data.msg,
+          fromId: store.state.currentUser.id,
+          groupId: props.currentChatGroupId,
+          avatar: store.state.currentUser.avatar,
+          username: store.state.currentUser.username
+        }
+        let success = false
+        context.emit('sendMsg', JSON.stringify(message), val => {
+          success = val
+        })
+        if (success) {
+          data.msg = ''
+        }
+      }
+    }
+
+    // 开始视频通话
+    function startVideoCall () {
+      if (!$common.isEmpty(props.currentChatFriendId)) {
+        console.log('[音视频通话] 开始视频通话:', props.currentChatFriendId);
+        data.callType = 'video'
+        data.isCaller = true
+        data.currentCallTargetId = props.currentChatFriendId
+        data.showVideoCall = true
+        
+        // 发送视频通话请求消息
+        const message = {
+          messageType: 3, // 视频通话请求
+          fromId: store.state.currentUser.id,
+          toId: props.currentChatFriendId,
+          content: '视频通话请求'
+        }
+        console.log('[音视频通话] 发送视频通话请求:', message);
+        try {
+          context.emit('startVideoCall', {
+            type: 'video',
+            targetId: props.currentChatFriendId
+          });
+          context.emit('sendMsg', JSON.stringify(message), (success) => {
+            if (success) {
+              console.log('[音视频通话] 视频通话请求发送成功');
+            } else {
+              console.error('[音视频通话] 视频通话请求发送失败');
+            }
+          });
+        } catch (error) {
+          console.error('[音视频通话] 发送视频通话请求失败:', error);
+        }
+      }
+    }
+
+    // 开始语音通话
+    function startAudioCall () {
+      if (!$common.isEmpty(props.currentChatFriendId)) {
+        console.log('[音视频通话] 开始语音通话:', props.currentChatFriendId);
+        data.callType = 'audio'
+        data.isCaller = true
+        data.currentCallTargetId = props.currentChatFriendId
+        data.showVideoCall = true
+        
+        // 发送语音通话请求消息
+        const message = {
+          messageType: 4, // 语音通话请求
+          fromId: store.state.currentUser.id,
+          toId: props.currentChatFriendId,
+          content: '语音通话请求'
+        }
+        console.log('[音视频通话] 发送语音通话请求:', message);
+        try {
+          context.emit('startAudioCall', {
+            type: 'audio',
+            targetId: props.currentChatFriendId
+          });
+          context.emit('sendMsg', JSON.stringify(message), (success) => {
+            if (success) {
+              console.log('[音视频通话] 语音通话请求发送成功');
+            } else {
+              console.error('[音视频通话] 语音通话请求发送失败');
+            }
+          });
+        } catch (error) {
+          console.error('[音视频通话] 发送语音通话请求失败:', error);
+        }
+      }
+    }
+
+    return {
+      ...toRefs(data),
+      openFriendCircle,
+      addEmoji,
+      addPicture,
+      sendPicture,
+      sendImage,
+      sendPoetry,
+      send,
+      doSend,
+      startVideoCall,
+      startAudioCall
+    }
   }
+}
 </script>
 
 <style scoped>
@@ -708,7 +814,6 @@
     flex-flow: wrap;
     gap: 10px;
   }
-
 
   @media screen and (max-width: 400px) {
     .msg-one {

@@ -312,7 +312,9 @@
               :imMessages="imMessages"
               :groupMessages="groupMessages"
               @sendMsg="sendMsg"
-              @openFriendCircle="openFriendCircle"></chat>
+              @openFriendCircle="openFriendCircle"
+              @startVideoCall="handleStartVideoCall"
+              @startAudioCall="handleStartAudioCall"></chat>
 
         <div class="body-right" v-if="subType === 3">
           <div style="height: 60px;background-color: var(--maxWhite)">
@@ -566,401 +568,597 @@
         <img id="bigImg" src=""/>
       </div>
     </div>
+
+    <!-- 音视频通话组件 -->
+    <video-call
+      v-if="showVideoCall"
+      :key="currentCallTargetId"
+      :call-type="callType"
+      :is-caller="isCaller"
+      :target-id="currentCallTargetId"
+      :show-call-modal="showVideoCall"
+      @send-call-offer="handleCallOffer"
+      @send-call-answer="handleCallAnswer"
+      @send-call-reject="handleCallReject"
+      @send-call-cancel="handleCallCancel"
+      @send-ice-candidate="handleIceCandidate"
+    />
   </div>
 </template>
 
 <script>
-  import Im from "../utils/im";
-  import {useStore} from 'vuex';
+import Im from '../utils/im'
+import { useStore } from 'vuex'
 
-  import {useDialog} from 'naive-ui';
+import { useDialog } from 'naive-ui'
 
-  import {nextTick} from 'vue';
+import { nextTick, reactive, getCurrentInstance, onMounted, onBeforeUnmount, watchEffect, toRefs, ref } from 'vue'
 
-  import {ElMessage} from "element-plus";
+import { ElMessage } from 'element-plus'
 
-  import bindEmail from "../hooks/bindEmail";
-  import friendCircle from "../hooks/friendCircle";
-  import friend from "../hooks/friend";
-  import group from "../hooks/group";
-  import imUtil from "../hooks/imUtil";
-  import changeData from "../hooks/changeData";
+import bindEmail from '../hooks/bindEmail'
+import friendCircle from '../hooks/friendCircle'
+import friend from '../hooks/friend'
+import group from '../hooks/group'
+import imUtil from '../hooks/imUtil'
+import changeData from '../hooks/changeData'
 
-  import proButton from "./common/proButton";
-  import treeHole from "./common/treeHole";
-  import commentBox from "./common/commentBox";
-  import uploadPicture from "./common/uploadPicture";
-  import chat from "./common/chat";
-  import groupInfo from "./common/groupInfo";
-  import {reactive, getCurrentInstance, onMounted, onBeforeUnmount, watchEffect, toRefs} from 'vue';
+import proButton from './common/proButton'
+import treeHole from './common/treeHole'
+import commentBox from './common/commentBox'
+import uploadPicture from './common/uploadPicture'
+import chat from './common/chat'
+import groupInfo from './common/groupInfo'
+import videoCall from './common/videoCall'
 
-  export default {
-    components: {
-      proButton,
-      treeHole,
-      commentBox,
-      uploadPicture,
-      chat,
-      groupInfo
-    },
-    setup(props, context) {
-      const globalProperties = getCurrentInstance().appContext.config.globalProperties;
-      const $common = globalProperties.$common;
-      const $http = globalProperties.$http;
-      const $constant = globalProperties.$constant;
-      const store = useStore();
-      const dialog = useDialog();
+export default {
+  components: {
+    proButton,
+    treeHole,
+    commentBox,
+    uploadPicture,
+    chat,
+    groupInfo,
+    videoCall
+  },
+  setup (props, context) {
+    const globalProperties = getCurrentInstance().appContext.config.globalProperties
+    const $common = globalProperties.$common
+    const $http = globalProperties.$http
+    const $constant = globalProperties.$constant
+    const store = useStore()
+    const dialog = useDialog()
 
-      const {bindEmailData, getCode, submitDialog} = bindEmail();
-      const {friendCircleData, launch, openFriendCircle, deleteTreeHole, submitWeiYan, pageWeiYan, cleanFriendCircle, addFriend} = friendCircle();
-      const {friendData, getImFriend, removeFriend, getFriendRequests, changeFriendStatus} = friend();
-      const {groupData, getImGroup, addGroupTopic, exitGroup, dissolveGroup} = group();
-      const {imUtilData, changeAside, mobileRight, getSystemMessages, hiddenBodyLeft, imgShow, getImageList, parseMessage} = imUtil();
-      const {changeDataData, changeAvatar, changeDataType, submitAvatar, submitChange} = changeData(friendData, groupData);
+    const { bindEmailData, getCode, submitDialog } = bindEmail()
+    const { friendCircleData, launch, openFriendCircle, deleteTreeHole, submitWeiYan, pageWeiYan, cleanFriendCircle, addFriend } = friendCircle()
+    const { friendData, getImFriend, removeFriend, getFriendRequests, changeFriendStatus } = friend()
+    const { groupData, getImGroup, addGroupTopic, exitGroup, dissolveGroup } = group()
+    const { imUtilData, changeAside, mobileRight, getSystemMessages, hiddenBodyLeft, imgShow, getImageList, parseMessage } = imUtil()
+    const { changeDataData, changeAvatar, changeDataType, submitAvatar, submitChange } = changeData(friendData, groupData)
 
-      let data = reactive({
-        //消息列表
-        imMessages: {},
-        //消息标记
-        imMessageBadge: {},
-        //聊天列表
-        imChats: [],
-        //当前聊天信息
-        currentChatFriendId: null,
+    const data = reactive({
+      // 消息列表
+      imMessages: {},
+      // 消息标记
+      imMessageBadge: {},
+      // 聊天列表
+      imChats: [],
+      // 当前聊天信息
+      currentChatFriendId: null,
 
-        //群消息列表
-        groupMessages: {},
-        //群消息标记
-        groupMessageBadge: {},
-        //群聊天列表
-        groupChats: [],
-        //当前群聊天信息
-        currentChatGroupId: null,
+      // 群消息列表
+      groupMessages: {},
+      // 群消息标记
+      groupMessageBadge: {},
+      // 群聊天列表
+      groupChats: [],
+      // 当前群聊天信息
+      currentChatGroupId: null,
 
-        type: 1,
-        subType: 1,
-        showFriendValue: ''
-      })
+      type: 1,
+      subType: 1,
+      showFriendValue: ''
+    })
 
-      let im;
+    let im
 
-      if (!$common.isEmpty(store.state.currentUser)) {
-        getImageList();
-        getSystemMessages();
-        getFriendRequests();
-        getFriendAndGroup();
-        getSysConfig();
-      }
+    const showVideoCall = ref(false)
+    const callType = ref('')
+    const isCaller = ref(false)
+    const currentCallTargetId = ref('')
 
-      async function getFriendAndGroup() {
-        await getImFriend();
-        await getImGroup();
-        await nextTick();
-        getIm();
-      }
+    if (!$common.isEmpty(store.state.currentUser)) {
+      getImageList()
+      getSystemMessages()
+      getFriendRequests()
+      getFriendAndGroup()
+      getSysConfig()
+    }
 
-      function getSysConfig() {
-        $http.get($constant.baseURL + "/sysConfig/listSysConfig")
-          .then((res) => {
-            if (!$common.isEmpty(res.data)) {
-              store.commit("loadSysConfig", res.data);
-              buildCssPicture();
-            }
+    async function getFriendAndGroup () {
+      await getImFriend()
+      await getImGroup()
+      await nextTick()
+      getIm()
+    }
+
+    function getSysConfig () {
+      $http.get($constant.baseURL + '/sysConfig/listSysConfig')
+        .then((res) => {
+          if (!$common.isEmpty(res.data)) {
+            store.commit('loadSysConfig', res.data)
+            buildCssPicture()
+          }
+        })
+        .catch((error) => {
+          this.$message({
+            message: error.message,
+            type: 'error'
           })
-          .catch((error) => {
-            this.$message({
-              message: error.message,
-              type: "error"
-            });
-          });
-      }
+        })
+    }
 
-      function buildCssPicture() {
-        let root = document.querySelector(":root");
-        let webStaticResourcePrefix = store.state.sysConfig['webStaticResourcePrefix'];
-        root.style.setProperty("--commentURL", "url(" + webStaticResourcePrefix + "assets/commentURL.jpg)");
-        root.style.setProperty("--imBackground", "url(" + webStaticResourcePrefix + "assets/backgroundPicture.jpg)");
-        const font = new FontFace("poetize-font", "url(" + webStaticResourcePrefix + "assets/font.woff2)");
-        font.load();
-        document.fonts.add(font);
-      }
+    function buildCssPicture () {
+      const root = document.querySelector(':root')
+      const webStaticResourcePrefix = store.state.sysConfig.webStaticResourcePrefix
+      root.style.setProperty('--commentURL', 'url(' + webStaticResourcePrefix + 'assets/commentURL.jpg)')
+      root.style.setProperty('--imBackground', 'url(' + webStaticResourcePrefix + 'assets/backgroundPicture.jpg)')
+      const font = new FontFace('poetize-font', 'url(' + webStaticResourcePrefix + 'assets/font.woff2)')
+      font.load()
+      document.fonts.add(font)
+    }
 
-      function getIm() {
-        im = new Im();
-        im.initWs();
-        im.tio.ws.onmessage = function (event) {
-          let message = JSON.parse(event.data);
-          message.content = parseMessage(message.content);
-          if (message.messageType === 1) {
-            if (message.fromId === store.state.currentUser.id && (friendData.friends[message.toId] !== null && friendData.friends[message.toId] !== undefined)) {
-              if (data.imMessages[message.toId] === null || data.imMessages[message.toId] === undefined) {
-                data.imMessages[message.toId] = [];
+    function getIm () {
+      im = new Im()
+      im.initWs()
+      im.tio.ws.onmessage = function (event) {
+        const message = JSON.parse(event.data)
+        message.content = parseMessage(message.content)
+
+        // 处理音视频通话消息
+        if (message.messageType >= 3 && message.messageType <= 7) {
+          console.log('[音视频通话] 收到通话消息:', message)
+          switch (message.messageType) {
+            case 3: // 视频通话请求
+              console.log('[音视频通话] 收到视频通话请求')
+              showVideoCall.value = true
+              callType.value = 'video'
+              isCaller.value = false
+              currentCallTargetId.value = message.fromId
+              break
+            case 4: // 语音通话请求
+              console.log('[音视频通话] 收到语音通话请求')
+              showVideoCall.value = true
+              callType.value = 'audio'
+              isCaller.value = false
+              currentCallTargetId.value = message.fromId
+              break
+            case 5: // 接受通话
+              console.log('[音视频通话] 对方接受通话')
+              if (isCaller.value) {
+                // 开始建立 WebRTC 连接
+                startCallConnection()
               }
-              data.imMessages[message.toId].push(message);
+              break
+            case 6: // 拒绝通话
+              console.log('[音视频通话] 对方拒绝通话')
+              showVideoCall.value = false
+              break
+            case 7: // 取消通话
+              console.log('[音视频通话] 对方取消通话')
+              showVideoCall.value = false
+              break
+          }
+          return
+        }
 
+        if (message.messageType === 1) {
+          if (message.fromId === store.state.currentUser.id && (friendData.friends[message.toId] !== null && friendData.friends[message.toId] !== undefined)) {
+            if (data.imMessages[message.toId] === null || data.imMessages[message.toId] === undefined) {
+              data.imMessages[message.toId] = []
+            }
+            data.imMessages[message.toId].push(message)
+
+            for (let i = 0; i < data.imChats.length; i++) {
+              if (data.imChats[i] === message.toId) {
+                data.imChats.splice(i, 1)
+                break
+              }
+            }
+            data.imChats.splice(0, 0, message.toId)
+            isActive(document.getElementsByClassName('im-user-current')[0], 'im-active', null, 2, message.toId, 2)
+          } else if (message.fromId !== store.state.currentUser.id && (friendData.friends[message.fromId] !== null && friendData.friends[message.fromId] !== undefined)) {
+            if (data.imMessages[message.fromId] === null || data.imMessages[message.fromId] === undefined) {
               for (let i = 0; i < data.imChats.length; i++) {
-                if (data.imChats[i] === message.toId) {
-                  data.imChats.splice(i, 1);
-                  break;
+                if (data.imChats[i] === message.fromId) {
+                  data.imChats.splice(i, 1)
+                  break
                 }
               }
-              data.imChats.splice(0, 0, message.toId);
-              isActive(document.getElementsByClassName('im-user-current')[0], 'im-active', null, 2, message.toId, 2);
-            } else if (message.fromId !== store.state.currentUser.id && (friendData.friends[message.fromId] !== null && friendData.friends[message.fromId] !== undefined)) {
-              if (data.imMessages[message.fromId] === null || data.imMessages[message.fromId] === undefined) {
-                for (let i = 0; i < data.imChats.length; i++) {
-                  if (data.imChats[i] === message.fromId) {
-                    data.imChats.splice(i, 1);
-                    break;
-                  }
-                }
-                data.imChats.splice(0, 0, message.fromId);
+              data.imChats.splice(0, 0, message.fromId)
 
-                data.imMessages[message.fromId] = [];
-              }
-              data.imMessages[message.fromId].push(message);
-
-              if (data.subType !== 2 || data.currentChatFriendId !== message.fromId) {
-                if (data.imMessageBadge[message.fromId] === null || data.imMessageBadge[message.fromId] === undefined) {
-                  data.imMessageBadge[message.fromId] = 1;
-                } else {
-                  data.imMessageBadge[message.fromId] = data.imMessageBadge[message.fromId] + 1;
-                }
-              }
+              data.imMessages[message.fromId] = []
             }
+            data.imMessages[message.fromId].push(message)
 
-            nextTick(() => {
-              let msgContainer = document.getElementsByClassName('msg-container');
-              if (msgContainer && msgContainer.length > 0) {
-                msgContainer[0].scrollTop = msgContainer[0].scrollHeight;
-              }
-              imgShow();
-            });
-          } else if (message.messageType === 2 && (groupData.groups[message.groupId] !== null && groupData.groups[message.groupId] !== undefined)) {
-            if (data.groupMessages[message.groupId] === null || data.groupMessages[message.groupId] === undefined) {
-              data.groupMessages[message.groupId] = [];
-            }
-            data.groupMessages[message.groupId].push(message);
-
-            if(message.fromId === store.state.currentUser.id || data.groupMessages[message.groupId] === null || data.groupMessages[message.groupId] === undefined) {
-              for (let i = 0; i < data.groupChats.length; i++) {
-                if (data.groupChats[i] === message.groupId) {
-                  data.groupChats.splice(i, 1);
-                  break;
-                }
-              }
-              data.groupChats.splice(0, 0, message.groupId);
-              isActive(document.getElementsByClassName('im-group-current')[0], 'im-active', null, 2, message.groupId, 1);
-            }
-
-            if ((data.subType !== 2 || data.currentChatGroupId !== message.groupId) && message.fromId !== store.state.currentUser.id) {
-              if (data.groupMessageBadge[message.groupId] === null || data.groupMessageBadge[message.groupId] === undefined) {
-                data.groupMessageBadge[message.groupId] = 1;
+            if (data.subType !== 2 || data.currentChatFriendId !== message.fromId) {
+              if (data.imMessageBadge[message.fromId] === null || data.imMessageBadge[message.fromId] === undefined) {
+                data.imMessageBadge[message.fromId] = 1
               } else {
-                data.groupMessageBadge[message.groupId] = data.groupMessageBadge[message.groupId] + 1;
+                data.imMessageBadge[message.fromId] = data.imMessageBadge[message.fromId] + 1
               }
             }
-
-            nextTick(() => {
-              let msgContainer = document.getElementsByClassName('msg-container');
-              if (msgContainer && msgContainer.length > 0) {
-                msgContainer[0].scrollTop = msgContainer[0].scrollHeight;
-              }
-              imgShow();
-            });
-          }
-        }
-      }
-
-      function sendMsg(msg, callback) {
-        let success = im.sendMsg(msg);
-        callback(success);
-      }
-
-      function isActive(e, className, type, subType, current, imType) {
-        if (!$common.isEmpty(type)) {
-          data.type = type;
-          let actives = ["im-active", "friend-active", "im-group"];
-          for (let activeClass of actives) {
-            for (let tab of document.getElementsByClassName(activeClass)) {
-              tab.classList.remove(activeClass);
-            }
-          }
-        }
-
-        if (!$common.isEmpty(subType)) {
-          data.subType = subType;
-          if (subType === 4 && !$common.isEmpty(current)) {
-            friendData.currentFriendId = current.friendId;
-          }
-          if (subType === 5 && !$common.isEmpty(current)) {
-            groupData.currentGroupId = current.id;
           }
 
-          if (subType === 2 && !$common.isEmpty(current) && !$common.isEmpty(imType)) {
-            if (imType === 1) {
-              data.currentChatFriendId = null;
-              data.currentChatGroupId = current;
-              data.groupMessageBadge[current] = 0;
-            } else if (imType === 2) {
-              data.currentChatGroupId = null;
-              data.currentChatFriendId = current;
-              data.imMessageBadge[current] = 0;
-            }
-          }
           nextTick(() => {
-            let msgContainer = document.getElementsByClassName('msg-container');
+            const msgContainer = document.getElementsByClassName('msg-container')
             if (msgContainer && msgContainer.length > 0) {
-              msgContainer[0].scrollTop = msgContainer[0].scrollHeight;
+              msgContainer[0].scrollTop = msgContainer[0].scrollHeight
             }
-            imgShow();
-            mobileRight();
-            hiddenBodyLeft();
-          });
-        }
-
-        for (const tab of document.getElementsByClassName(className)) {
-          tab.classList.remove(className);
-        }
-
-        if (e instanceof HTMLElement) {
-          e.classList.add(className);
-        } else {
-          let node = e.currentTarget;
-          node.classList.add(className);
-        }
-      }
-
-      async function sendFriendMessage() {
-        for (let i = 0; i < data.imChats.length; i++) {
-          if (data.imChats[i] === friendData.currentFriendId) {
-            data.imChats.splice(i, 1);
-            break;
-          }
-        }
-        data.imChats.splice(0, 0, friendData.currentFriendId);
-        await nextTick();
-        isActive(document.getElementById('chat'), 'aside-active', 1);
-        isActive(document.getElementsByClassName('im-user-current')[0], 'im-active', null, 2, friendData.currentFriendId, 2);
-        getMessages(friendData.currentFriendId);
-      }
-
-      async function sendGroupMessage() {
-        for (let i = 0; i < data.groupChats.length; i++) {
-          if (data.groupChats[i] === groupData.currentGroupId) {
-            data.groupChats.splice(i, 1);
-            break;
-          }
-        }
-        data.groupChats.splice(0, 0, groupData.currentGroupId);
-        await nextTick();
-        isActive(document.getElementById('chat'), 'aside-active', 1);
-        isActive(document.getElementsByClassName('im-group-current')[0], 'im-active', null, 2, groupData.currentGroupId, 1);
-        getGroupMessages(groupData.currentGroupId);
-        if (groupData.groups[groupData.currentGroupId].groupType === 2) {
-          addGroupTopic();
-        }
-      }
-
-      function getMessages(friendId, current = 1, size = 100) {
-        if (!data.imMessages.hasOwnProperty(friendId)) {
-          $http.get($constant.baseURL + "/imChatUserMessage/listFriendMessage", {
-            friendId: friendId,
-            current: current,
-            size: size
+            imgShow()
           })
-            .then((res) => {
-              if (!$common.isEmpty(res.data) && !$common.isEmpty(res.data.records)) {
-                res.data.records.forEach(message => {
-                  message.content = parseMessage(message.content);
-                });
-                data.imMessages[friendId] = res.data.records;
-              } else {
-                data.imMessages[friendId] = [];
-              }
-              nextTick(() => {
-                let msgContainer = document.getElementsByClassName('msg-container');
-                if (msgContainer && msgContainer.length > 0) {
-                  msgContainer[0].scrollTop = msgContainer[0].scrollHeight;
-                }
-                imgShow();
-              });
-            })
-            .catch((error) => {
-              ElMessage({
-                message: error.message,
-                type: 'error'
-              });
-            });
-        }
-      }
+        } else if (message.messageType === 2 && (groupData.groups[message.groupId] !== null && groupData.groups[message.groupId] !== undefined)) {
+          if (data.groupMessages[message.groupId] === null || data.groupMessages[message.groupId] === undefined) {
+            data.groupMessages[message.groupId] = []
+          }
+          data.groupMessages[message.groupId].push(message)
 
-      function getGroupMessages(groupId, current = 1, size = 100) {
-        if (!data.groupMessages.hasOwnProperty(groupId)) {
-          $http.get($constant.baseURL + "/imChatUserGroupMessage/listGroupMessage", {
-            groupId: groupId,
-            current: current,
-            size: size
+          if (message.fromId === store.state.currentUser.id || data.groupMessages[message.groupId] === null || data.groupMessages[message.groupId] === undefined) {
+            for (let i = 0; i < data.groupChats.length; i++) {
+              if (data.groupChats[i] === message.groupId) {
+                data.groupChats.splice(i, 1)
+                break
+              }
+            }
+            data.groupChats.splice(0, 0, message.groupId)
+            isActive(document.getElementsByClassName('im-group-current')[0], 'im-active', null, 2, message.groupId, 1)
+          }
+
+          if ((data.subType !== 2 || data.currentChatGroupId !== message.groupId) && message.fromId !== store.state.currentUser.id) {
+            if (data.groupMessageBadge[message.groupId] === null || data.groupMessageBadge[message.groupId] === undefined) {
+              data.groupMessageBadge[message.groupId] = 1
+            } else {
+              data.groupMessageBadge[message.groupId] = data.groupMessageBadge[message.groupId] + 1
+            }
+          }
+
+          nextTick(() => {
+            const msgContainer = document.getElementsByClassName('msg-container')
+            if (msgContainer && msgContainer.length > 0) {
+              msgContainer[0].scrollTop = msgContainer[0].scrollHeight
+            }
+            imgShow()
           })
-            .then((res) => {
-              if (!$common.isEmpty(res.data) && !$common.isEmpty(res.data.records)) {
-                res.data.records.forEach(message => {
-                  message.content = parseMessage(message.content);
-                });
-                data.groupMessages[groupId] = res.data.records;
-              } else {
-                data.groupMessages[groupId] = [];
-              }
-              nextTick(() => {
-                let msgContainer = document.getElementsByClassName('msg-container');
-                if (msgContainer && msgContainer.length > 0) {
-                  msgContainer[0].scrollTop = msgContainer[0].scrollHeight;
-                }
-                imgShow();
-              });
-            })
-            .catch((error) => {
-              ElMessage({
-                message: error.message,
-                type: 'error'
-              });
-            });
         }
-      }
-
-      return {
-        ...toRefs(data),
-        ...toRefs(bindEmailData),
-        ...toRefs(friendCircleData),
-        ...toRefs(friendData),
-        ...toRefs(groupData),
-        ...toRefs(imUtilData),
-        ...toRefs(changeDataData),
-        isActive,
-        sendMsg,
-        submitAvatar,
-        changeFriendStatus,
-        submitChange,
-        removeFriend,
-        sendFriendMessage,
-        changeDataType,
-        changeAvatar,
-        sendGroupMessage,
-        changeAside,
-        openFriendCircle,
-        launch,
-        deleteTreeHole,
-        submitWeiYan,
-        pageWeiYan,
-        cleanFriendCircle,
-        addFriend,
-        getCode,
-        submitDialog,
-        exitGroup,
-        dissolveGroup
       }
     }
+
+    function sendMsg(msg, callback) {
+      try {
+        console.log('[WebSocket] 准备发送消息:', msg);
+        if (!im || !im.tio || !im.tio.ws) {
+          console.error('[WebSocket] 发送失败: WebSocket 未连接');
+          if (callback) callback(false);
+          return false;
+        }
+        
+        const success = im.sendMsg(msg);
+        console.log('[WebSocket] 消息发送结果:', success);
+        if (callback) callback(success);
+        return success;
+      } catch (error) {
+        console.error('[WebSocket] 发送消息时发生错误:', error);
+        if (callback) callback(false);
+        return false;
+      }
+    }
+
+    function isActive (e, className, type, subType, current, imType) {
+      if (!$common.isEmpty(type)) {
+        data.type = type
+        const actives = ['im-active', 'friend-active', 'im-group']
+        for (const activeClass of actives) {
+          for (const tab of document.getElementsByClassName(activeClass)) {
+            tab.classList.remove(activeClass)
+          }
+        }
+      }
+
+      if (!$common.isEmpty(subType)) {
+        data.subType = subType
+        if (subType === 4 && !$common.isEmpty(current)) {
+          friendData.currentFriendId = current.friendId
+        }
+        if (subType === 5 && !$common.isEmpty(current)) {
+          groupData.currentGroupId = current.id
+        }
+
+        if (subType === 2 && !$common.isEmpty(current) && !$common.isEmpty(imType)) {
+          if (imType === 1) {
+            data.currentChatFriendId = null
+            data.currentChatGroupId = current
+            data.groupMessageBadge[current] = 0
+          } else if (imType === 2) {
+            data.currentChatGroupId = null
+            data.currentChatFriendId = current
+            data.imMessageBadge[current] = 0
+          }
+        }
+        
+        nextTick(() => {
+          const msgContainer = document.getElementsByClassName('msg-container')
+          if (msgContainer && msgContainer.length > 0) {
+            msgContainer[0].scrollTop = msgContainer[0].scrollHeight
+          }
+          imgShow()
+          mobileRight()
+          hiddenBodyLeft()
+        })
+      }
+
+      for (const tab of document.getElementsByClassName(className)) {
+        tab.classList.remove(className)
+      }
+
+      if (e instanceof HTMLElement) {
+        e.classList.add(className)
+      } else {
+        const node = e.currentTarget
+        node.classList.add(className)
+      }
+    }
+
+    async function sendFriendMessage () {
+      for (let i = 0; i < data.imChats.length; i++) {
+        if (data.imChats[i] === friendData.currentFriendId) {
+          data.imChats.splice(i, 1)
+          break
+        }
+      }
+      data.imChats.splice(0, 0, friendData.currentFriendId)
+      await nextTick()
+      isActive(document.getElementById('chat'), 'aside-active', 1)
+      isActive(document.getElementsByClassName('im-user-current')[0], 'im-active', null, 2, friendData.currentFriendId, 2)
+      getMessages(friendData.currentFriendId)
+    }
+
+    async function sendGroupMessage () {
+      for (let i = 0; i < data.groupChats.length; i++) {
+        if (data.groupChats[i] === groupData.currentGroupId) {
+          data.groupChats.splice(i, 1)
+          break
+        }
+      }
+      data.groupChats.splice(0, 0, groupData.currentGroupId)
+      await nextTick()
+      isActive(document.getElementById('chat'), 'aside-active', 1)
+      isActive(document.getElementsByClassName('im-group-current')[0], 'im-active', null, 2, groupData.currentGroupId, 1)
+      getGroupMessages(groupData.currentGroupId)
+      if (groupData.groups[groupData.currentGroupId].groupType === 2) {
+        addGroupTopic()
+      }
+    }
+
+    function getMessages (friendId, current = 1, size = 100) {
+      if (!data.imMessages.hasOwnProperty(friendId)) {
+        $http.get($constant.baseURL + '/imChatUserMessage/listFriendMessage', {
+          friendId: friendId,
+          current: current,
+          size: size
+        })
+          .then((res) => {
+            if (!$common.isEmpty(res.data) && !$common.isEmpty(res.data.records)) {
+              res.data.records.forEach(message => {
+                message.content = parseMessage(message.content)
+              })
+              data.imMessages[friendId] = res.data.records
+            } else {
+              data.imMessages[friendId] = []
+            }
+            nextTick(() => {
+              const msgContainer = document.getElementsByClassName('msg-container')
+              if (msgContainer && msgContainer.length > 0) {
+                msgContainer[0].scrollTop = msgContainer[0].scrollHeight
+              }
+              imgShow()
+            })
+          })
+          .catch((error) => {
+            ElMessage({
+              message: error.message,
+              type: 'error'
+            })
+          })
+      }
+    }
+
+    function getGroupMessages (groupId, current = 1, size = 100) {
+      if (!data.groupMessages.hasOwnProperty(groupId)) {
+        $http.get($constant.baseURL + '/imChatUserGroupMessage/listGroupMessage', {
+          groupId: groupId,
+          current: current,
+          size: size
+        })
+          .then((res) => {
+            if (!$common.isEmpty(res.data) && !$common.isEmpty(res.data.records)) {
+              res.data.records.forEach(message => {
+                message.content = parseMessage(message.content)
+              })
+              data.groupMessages[groupId] = res.data.records
+            } else {
+              data.groupMessages[groupId] = []
+            }
+            nextTick(() => {
+              const msgContainer = document.getElementsByClassName('msg-container')
+              if (msgContainer && msgContainer.length > 0) {
+                msgContainer[0].scrollTop = msgContainer[0].scrollHeight
+              }
+              imgShow()
+            })
+          })
+          .catch((error) => {
+            ElMessage({
+              message: error.message,
+              type: 'error'
+            })
+          })
+      }
+    }
+
+    
+
+    // 开始建立通话连接
+    const startCallConnection = async () => {
+      try {
+        console.log('[音视频通话] 开始建立连接')
+        // 这里添加建立 WebRTC 连接的逻辑
+        // TODO: 实现 WebRTC 连接
+      } catch (error) {
+        console.error('[音视频通话] 建立连接失败:', error)
+      }
+    }
+
+    function handleCallOffer (data) {
+      const message = {
+        messageType: 3,
+        content: JSON.stringify({
+          type: data.type,
+          offer: data.offer
+        }),
+        fromId: store.state.currentUser.id,
+        toId: data.targetId,
+        avatar: store.state.currentUser.avatar
+      }
+      im.sendMsg(JSON.stringify(message))
+    }
+
+    function handleCallAnswer (data) {
+      const message = {
+        messageType: 4,
+        content: JSON.stringify({
+          answer: data.answer
+        }),
+        fromId: store.state.currentUser.id,
+        toId: data.targetId,
+        avatar: store.state.currentUser.avatar
+      }
+      im.sendMsg(JSON.stringify(message))
+    }
+
+    function handleCallReject (targetId) {
+      const message = {
+        messageType: 5,
+        content: '',
+        fromId: store.state.currentUser.id,
+        toId: targetId,
+        avatar: store.state.currentUser.avatar
+      }
+      im.sendMsg(JSON.stringify(message))
+    }
+
+    function handleCallCancel (targetId) {
+      const message = {
+        messageType: 6,
+        content: '',
+        fromId: store.state.currentUser.id,
+        toId: targetId,
+        avatar: store.state.currentUser.avatar
+      }
+      im.sendMsg(JSON.stringify(message))
+    }
+
+    function handleIceCandidate (data) {
+      const message = {
+        messageType: 7,
+        content: JSON.stringify({
+          candidate: data.candidate
+        }),
+        fromId: store.state.currentUser.id,
+        toId: data.targetId,
+        avatar: store.state.currentUser.avatar
+      }
+      im.sendMsg(JSON.stringify(message))
+    }
+
+    // 处理开始视频通话
+    function handleStartVideoCall (data) {
+      showVideoCall.value = true
+      callType.value = data.type
+      isCaller.value = true
+      currentCallTargetId.value = data.targetId
+    }
+
+    // 处理开始语音通话
+    function handleStartAudioCall (data) {
+      showVideoCall.value = true
+      callType.value = data.type
+      isCaller.value = true
+      currentCallTargetId.value = data.targetId
+    }
+
+    // 修改 WebSocket 消息监听器
+    onMounted(() => {
+      console.log('[WebSocket] 添加消息监听器')
+      window.addEventListener('imMessage', (event) => {
+        if (event && event.detail) {
+          getIm(event.detail)
+        } else {
+          console.error('[WebSocket] 收到无效的事件数据:', event)
+        }
+      })
+    })
+
+    onBeforeUnmount(() => {
+      console.log('[WebSocket] 移除消息监听器')
+      window.removeEventListener('imMessage', getIm)
+    })
+
+    return {
+      ...toRefs(data),
+      ...toRefs(bindEmailData),
+      ...toRefs(friendCircleData),
+      ...toRefs(friendData),
+      ...toRefs(groupData),
+      ...toRefs(imUtilData),
+      ...toRefs(changeDataData),
+      isActive,
+      sendMsg,
+      submitAvatar,
+      changeFriendStatus,
+      submitChange,
+      removeFriend,
+      sendFriendMessage,
+      changeDataType,
+      changeAvatar,
+      sendGroupMessage,
+      changeAside,
+      openFriendCircle,
+      launch,
+      deleteTreeHole,
+      submitWeiYan,
+      pageWeiYan,
+      cleanFriendCircle,
+      addFriend,
+      getCode,
+      submitDialog,
+      exitGroup,
+      dissolveGroup,
+      showVideoCall,
+      callType,
+      isCaller,
+      currentCallTargetId,
+      handleCallOffer,
+      handleCallAnswer,
+      handleCallReject,
+      handleCallCancel,
+      handleIceCandidate,
+      handleStartVideoCall,
+      handleStartAudioCall,
+      startCallConnection,
+      getIm
+    }
   }
+}
 </script>
 
 <style scoped>
@@ -1237,7 +1435,6 @@
     font-size: 24px;
     margin-bottom: 15px;
   }
-
 
   @media screen and (max-width: 1200px) {
     .friend-box {

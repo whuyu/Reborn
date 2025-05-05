@@ -14,39 +14,39 @@
 </template>
 
 <script>
-  export default {
-    props: {
-      showEmoji: {
-        type: Boolean
+export default {
+  props: {
+    showEmoji: {
+      type: Boolean
+    }
+  },
+  data () {
+    return {
+      emojiList: this.$constant.emojiList,
+      emojiListURL: {}
+    }
+  },
+  created () {
+    this.emojiListURL = this.getEmojiList(this.emojiList)
+  },
+  methods: {
+    addEmoji (key) {
+      this.$emit('addEmoji', key)
+    },
+    getEmojiList (emojiList) {
+      let emojiName
+      let url
+      const result = {}
+      for (let i = 0; i < emojiList.length; i++) {
+        emojiName = '[' + emojiList[i] + ']'
+        const j = i + 1
+        url = this.$store.state.sysConfig.webStaticResourcePrefix + 'emoji/q' + j + '.gif'
+        result[emojiName] = url
       }
-    },
-    data() {
-      return {
-        emojiList: this.$constant.emojiList,
-        emojiListURL: {}
-      };
-    },
-    created() {
-      this.emojiListURL = this.getEmojiList(this.emojiList);
-    },
-    methods: {
-      addEmoji(key) {
-        this.$emit("addEmoji", key);
-      },
-      getEmojiList(emojiList) {
-        let emojiName;
-        let url;
-        let result = {}
-        for (let i = 0; i < emojiList.length; i++) {
-          emojiName = "[" + emojiList[i] + "]";
-          let j = i + 1;
-          url = this.$store.state.sysConfig['webStaticResourcePrefix'] + "emoji/q" + j + ".gif";
-          result[emojiName] = url;
-        }
-        return result;
-      }
+      return result
     }
   }
+}
 </script>
 
 <style scoped>
