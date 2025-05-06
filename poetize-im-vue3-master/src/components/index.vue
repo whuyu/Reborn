@@ -579,9 +579,10 @@
       :show-call-modal="showVideoCall"
       @send-call-offer="handleCallOffer"
       @send-call-answer="handleCallAnswer"
-      @send-call-reject="handleCallReject"
-      @send-call-cancel="handleCallCancel"
+      @rejectCall="handleCallReject"
+      @cancelCall="handleCallCancel"
       @send-ice-candidate="handleIceCandidate"
+      @sendMsg="sendMsg"
     />
   </div>
 </template>
@@ -735,6 +736,7 @@ export default {
               break
             case 5: // 接受通话
               console.log('[音视频通话] 对方接受通话')
+             
               if (isCaller.value) {
                 // 开始建立 WebRTC 连接
                 startCallConnection()
@@ -1046,25 +1048,14 @@ export default {
     }
 
     function handleCallReject (targetId) {
-      const message = {
-        messageType: 5,
-        content: '',
-        fromId: store.state.currentUser.id,
-        toId: targetId,
-        avatar: store.state.currentUser.avatar
-      }
-      im.sendMsg(JSON.stringify(message))
+      
+      //console.log('[音视频通话] 发送拒绝通话消息')
+      //im.sendMsg(JSON.stringify(message))
+      showVideoCall.value = false
     }
 
     function handleCallCancel (targetId) {
-      const message = {
-        messageType: 6,
-        content: '',
-        fromId: store.state.currentUser.id,
-        toId: targetId,
-        avatar: store.state.currentUser.avatar
-      }
-      im.sendMsg(JSON.stringify(message))
+      showVideoCall.value = false
     }
 
     function handleIceCandidate (data) {

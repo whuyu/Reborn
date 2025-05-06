@@ -103,8 +103,8 @@ export default {
       // 发送接受通话消息
       const message = {
         messageType: 5, // 接受通话
-        fromId: props.targetId,
-        toId: store.state.currentUser.id,
+        fromId: store.state.currentUser.id,
+        toId: props.targetId,
         content: '接受通话'
       }
       console.log('[音视频通话] 发送接受通话消息:', message);
@@ -116,12 +116,13 @@ export default {
 
     // 拒绝通话
     const rejectCall = () => {
+      
       console.log('[音视频通话] 拒绝通话');
       // 发送拒绝通话消息
       const message = {
         messageType: 6, // 拒绝通话
-        fromId: props.targetId,
-        toId: store.state.currentUser.id,
+        fromId: store.state.currentUser.id,
+        toId: props.targetId,
         content: '拒绝通话'
       }
       console.log('[音视频通话] 发送拒绝通话消息:', message);
