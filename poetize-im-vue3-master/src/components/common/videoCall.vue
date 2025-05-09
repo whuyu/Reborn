@@ -5,7 +5,7 @@
         <span>{{ callType === 'video' ? '视频通话' : '语音通话' }}</span>
         <span>{{ callStatus }}</span>
       </div>
-      
+
       <div class="video-call-content">
         <div class="remote-video" v-if="callType === 'video'">
           <video ref="remoteVideo" autoplay playsinline></video>
@@ -53,8 +53,9 @@
 </template>
 
 <script>
-import { ref, onMounted, onBeforeUnmount } from 'vue';
-import { useStore } from 'vuex';
+import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { useStore } from 'vuex'
+import { ElMessage } from 'element-plus'
 
 export default {
   name: 'VideoCall',
@@ -76,48 +77,147 @@ export default {
       default: false
     }
   },
-  setup(props, { emit }) {
-    const callStatus = ref('等待对方接听...');
-    const localVideo = ref(null);
-    const remoteVideo = ref(null);
-    const store = useStore();
+  setup (props, { emit }) {
+    const callStatus = ref('等待对方接听...')
+    const localVideo = ref(null)
+    const remoteVideo = ref(null)
+    const store = useStore()
 
     // 设置本地视频流
     const setLocalStream = (stream) => {
       if (localVideo.value) {
-        localVideo.value.srcObject = stream;
+        localVideo.value.srcObject = stream
       }
-    };
+    }
 
     // 设置远程视频流
     const setRemoteStream = (stream) => {
       if (remoteVideo.value) {
-        remoteVideo.value.srcObject = stream;
-        callStatus.value = '通话中...';
+        remoteVideo.value.srcObject = stream
+        callStatus.value = '通话中...'
       }
-    };
+    }
 
-    // 接受通话
-    const acceptCall = () => {
-      console.log('[音视频通话] 接受通话');
-      // 发送接受通话消息
-      const message = {
-        messageType: 5, // 接受通话
-        fromId: store.state.currentUser.id,
-        toId: props.targetId,
-        content: '接受通话'
+    // 接受通话 2025-05-07
+    const acceptCall = async () => {
+      try {
+        // 创建 RTCPeerConnection 实例
+        const configuration = {
+          iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' }
+          ]
+        }
+        
+        const peerConnection = new RTCPeerConnection(configuration)
+        
+        // 获取本地媒体流
+        const constraints = {
+          audio: true,
+          video: props.callType === 'video'
+        }
+        
+        const localStream = await navigator.mediaDevices.getUserMedia(constraints)
+        window.localStream = localStream
+        // 设置音频输出设备
+        if (localStream.getAudioTracks().length > 0) {
+          const audioTrack = localStream.getAudioTracks()[0]
+          audioTrack.enabled = true
+        }
+        
+        // 将本地流添加到 peerConnection
+        localStream.getTracks().forEach(track => {
+          peerConnection.addTrack(track, localStream)
+        })
+        
+        // 设置本地视频流
+        if (props.callType === 'video') {
+          setLocalStream(localStream)
+        }
+        
+        // 监听远程流
+        peerConnection.ontrack = (event) => {
+        console.log('[远端轨道]', event.track.kind)  // 应该包含 audio
+        const remoteStream = event.streams[0]
+        setRemoteStream(remoteStream)
+        
+        // 播放音频（尤其对 audio-only 情况）
+        const remoteAudio = document.getElementById('remoteAudio')
+        if (remoteAudio) {
+          remoteAudio.srcObject = remoteStream
+          remoteAudio.play().catch(err => {
+            console.warn('播放远端音频失败', err)
+          })
+        }
       }
-      console.log('[音视频通话] 发送接受通话消息:', message);
-      emit('sendMsg', JSON.stringify(message), () => {
+        
+        // 监听 ICE 候选
+        peerConnection.onicecandidate = (event) => {
+          if (event.candidate) {
+            const message = {
+              messageType: 8,
+              content: JSON.stringify({
+                type: 'candidate',
+                candidate: event.candidate
+              }),
+              fromId: store.state.currentUser.id,
+              toId: props.targetId
+            }
+            emit('sendMsg', JSON.stringify(message))
+          }
+        }
+        
+        // 设置远程描述（offer）
+        const offer = window.pendingOffer
+        if (offer) {
+          await peerConnection.setRemoteDescription(new RTCSessionDescription(offer))
+          
+          // 创建应答
+          const answer = await peerConnection.createAnswer()
+          await peerConnection.setLocalDescription(answer)
+          
+          // 发送应答
+          const message = {
+            messageType: 5,
+            content: JSON.stringify({
+              type: 'answer',
+              sdp: answer.sdp
+            }),
+            fromId: store.state.currentUser.id,
+            toId: props.targetId
+          }
+          emit('sendMsg', JSON.stringify(message), () => {
         console.log('[音视频通话] 接受通话消息发送成功');
         emit('acceptCall')
       })
+          
+          // 处理之前缓存的 ICE candidates
+          if (window.pendingIceCandidates) {
+            for (const candidate of window.pendingIceCandidates) {
+              try {
+                await peerConnection.addIceCandidate(new RTCIceCandidate(candidate))
+              } catch (error) {
+                console.error('[音视频通话] 添加缓存的 ICE candidate 失败:', error)
+              }
+            }
+            window.pendingIceCandidates = []
+          }
+        }
+        
+        // 保存 peerConnection 实例
+        window.currentPeerConnection = peerConnection
+        
+        callStatus.value = '通话中...'
+        
+      } catch (error) {
+        console.error('[音视频通话] 接受通话失败:', error)
+        ElMessage.error('无法访问摄像头或麦克风')
+      }
     }
 
     // 拒绝通话
     const rejectCall = () => {
-      
-      console.log('[音视频通话] 拒绝通话');
+      console.log('[音视频通话] 拒绝通话')
       // 发送拒绝通话消息
       const message = {
         messageType: 6, // 拒绝通话
@@ -125,16 +225,16 @@ export default {
         toId: props.targetId,
         content: '拒绝通话'
       }
-      console.log('[音视频通话] 发送拒绝通话消息:', message);
+      console.log('[音视频通话] 发送拒绝通话消息:', message)
       emit('sendMsg', JSON.stringify(message), () => {
-        console.log('[音视频通话] 拒绝通话消息发送成功');
+        console.log('[音视频通话] 拒绝通话消息发送成功')
         emit('rejectCall', props.targetId)
       })
     }
 
     // 取消通话
     const cancelCall = () => {
-      console.log('[音视频通话] 取消通话');
+      console.log('[音视频通话] 取消通话')
       // 发送取消通话消息
       const message = {
         messageType: 7, // 取消通话
@@ -142,9 +242,9 @@ export default {
         toId: props.targetId,
         content: '取消通话'
       }
-      console.log('[音视频通话] 发送取消通话消息:', message);
+      console.log('[音视频通话] 发送取消通话消息:', message)
       emit('sendMsg', JSON.stringify(message), () => {
-        console.log('[音视频通话] 取消通话消息发送成功');
+        console.log('[音视频通话] 取消通话消息发送成功')
         emit('cancelCall', props.targetId)
       })
     }
@@ -152,12 +252,12 @@ export default {
     onBeforeUnmount(() => {
       // 清理视频流
       if (localVideo.value && localVideo.value.srcObject) {
-        localVideo.value.srcObject.getTracks().forEach(track => track.stop());
+        localVideo.value.srcObject.getTracks().forEach(track => track.stop())
       }
       if (remoteVideo.value && remoteVideo.value.srcObject) {
-        remoteVideo.value.srcObject.getTracks().forEach(track => track.stop());
+        remoteVideo.value.srcObject.getTracks().forEach(track => track.stop())
       }
-    });
+    })
 
     return {
       callStatus,
@@ -168,9 +268,9 @@ export default {
       acceptCall,
       rejectCall,
       cancelCall
-    };
+    }
   }
-};
+}
 </script>
 
 <style scoped>
@@ -225,4 +325,4 @@ video {
   height: 100%;
   object-fit: cover;
 }
-</style> 
+</style>

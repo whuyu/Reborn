@@ -591,7 +591,11 @@ export default {
         return
       }
 
+
+
       if (!$common.isEmpty(props.currentChatFriendId)) {
+
+
         const message = {
           messageType: 1,
           content: data.msg,
@@ -606,6 +610,10 @@ export default {
         if (success) {
           data.msg = ''
         }
+
+
+
+
       } else if (!$common.isEmpty(props.currentChatGroupId)) {
         const message = {
           messageType: 2,
@@ -633,30 +641,78 @@ export default {
         data.isCaller = true
         data.currentCallTargetId = props.currentChatFriendId
         data.showVideoCall = true
-        
-        // 发送视频通话请求消息
-        const message = {
-          messageType: 3, // 视频通话请求
-          fromId: store.state.currentUser.id,
-          toId: props.currentChatFriendId,
-          content: '视频通话请求'
+        context.emit('startCall')
+
+
+
+
+        // 创建 RTCPeerConnection 实例
+        const configuration = {
+          iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' }
+          ]
         }
-        console.log('[音视频通话] 发送视频通话请求:', message);
-        try {
-          context.emit('startVideoCall', {
-            type: 'video',
-            targetId: props.currentChatFriendId
-          });
-          context.emit('sendMsg', JSON.stringify(message), (success) => {
-            if (success) {
-              console.log('[音视频通话] 视频通话请求发送成功');
-            } else {
-              console.error('[音视频通话] 视频通话请求发送失败');
+
+        const peerConnection = new RTCPeerConnection(configuration)
+
+        // 获取本地媒体流
+        navigator.mediaDevices.getUserMedia({
+          audio: true,
+          video: true
+        }).then(async (localStream) => {
+          window.localStream = localStream
+          // 设置音频输出设备
+          if (localStream.getAudioTracks().length > 0) {
+            const audioTrack = localStream.getAudioTracks()[0]
+            audioTrack.enabled = true
+          }
+          
+          // 将本地流添加到 peerConnection
+          localStream.getTracks().forEach(track => {
+            peerConnection.addTrack(track, localStream)
+          })
+
+          // 创建并发送 offer
+          const offer = await peerConnection.createOffer()
+          await peerConnection.setLocalDescription(offer)
+
+
+          // 发送 offer 消息
+          const message = {
+            messageType: 3,
+              fromId: store.state.currentUser.id,
+              toId: props.currentChatFriendId,
+              content: JSON.stringify({
+              type: 'offer',
+              sdp: offer.sdp  // 只发送 sdp 字符串
+            })
+          }
+
+          // 监听 ICE 候选
+          peerConnection.onicecandidate = (event) => {
+            if (event.candidate) {
+              const iceMessage = {
+                messageType: 8,
+                fromId: store.state.currentUser.id,
+                toId: props.currentChatFriendId,
+                content: JSON.stringify({
+                  type: 'candidate',
+                  candidate: event.candidate
+                })
+              }
+              context.emit('sendMsg', JSON.stringify(iceMessage))
             }
-          });
-        } catch (error) {
-          console.error('[音视频通话] 发送视频通话请求失败:', error);
-        }
+          }
+
+          // 保存 peerConnection 实例
+          window.currentPeerConnection = peerConnection
+
+          context.emit('sendMsg', JSON.stringify(message))
+        }).catch(error => {
+          console.error('[音视频通话] 获取媒体设备失败:', error)
+          ElMessage.error('无法访问摄像头或麦克风')
+        })
       }
     }
 
@@ -668,30 +724,75 @@ export default {
         data.isCaller = true
         data.currentCallTargetId = props.currentChatFriendId
         data.showVideoCall = true
-        
-        // 发送语音通话请求消息
-        const message = {
-          messageType: 4, // 语音通话请求
-          fromId: store.state.currentUser.id,
-          toId: props.currentChatFriendId,
-          content: '语音通话请求'
+        context.emit('startCall')
+
+
+        // 创建 RTCPeerConnection 实例
+        const configuration = {
+          iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' }
+          ]
         }
-        console.log('[音视频通话] 发送语音通话请求:', message);
-        try {
-          context.emit('startAudioCall', {
-            type: 'audio',
-            targetId: props.currentChatFriendId
-          });
-          context.emit('sendMsg', JSON.stringify(message), (success) => {
-            if (success) {
-              console.log('[音视频通话] 语音通话请求发送成功');
-            } else {
-              console.error('[音视频通话] 语音通话请求发送失败');
+
+        const peerConnection = new RTCPeerConnection(configuration)
+
+        // 获取本地媒体流
+        navigator.mediaDevices.getUserMedia({
+          audio: true,
+          video: false
+        }).then(async (localStream) => {
+          // 设置音频输出设备
+          if (localStream.getAudioTracks().length > 0) {
+            const audioTrack = localStream.getAudioTracks()[0]
+            audioTrack.enabled = true
+          }
+          
+          // 将本地流添加到 peerConnection
+          localStream.getTracks().forEach(track => {
+            peerConnection.addTrack(track, localStream)
+          })
+
+          // 创建并发送 offer
+          const offer = await peerConnection.createOffer()
+          await peerConnection.setLocalDescription(offer)
+
+
+          // 发送 offer 消息
+          const message = {
+            messageType: 4,
+            fromId: store.state.currentUser.id,
+            toId: props.currentChatFriendId,
+            content: JSON.stringify({
+              type: 'offer',
+              sdp: offer.sdp
+            })
+          }
+
+          // 监听 ICE 候选
+          peerConnection.onicecandidate = (event) => {
+            if (event.candidate) {
+              const iceMessage = {
+                messageType: 8,
+                fromId: store.state.currentUser.id,
+                toId: props.currentChatFriendId,
+                content: JSON.stringify({
+                  type: 'candidate',
+                  candidate: event.candidate
+                })
+              }
+              context.emit('sendMsg', JSON.stringify(iceMessage))
             }
-          });
-        } catch (error) {
-          console.error('[音视频通话] 发送语音通话请求失败:', error);
-        }
+          }
+
+          // 保存 peerConnection 实例
+          window.currentPeerConnection = peerConnection
+
+          context.emit('sendMsg', JSON.stringify(message))
+        }).catch(error => {
+          console.error('[音视频通话] 获取媒体设备失败:', error)
+          ElMessage.error('无法访问麦克风')
+        })
       }
     }
 

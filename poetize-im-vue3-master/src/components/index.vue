@@ -313,8 +313,7 @@
               :groupMessages="groupMessages"
               @sendMsg="sendMsg"
               @openFriendCircle="openFriendCircle"
-              @startVideoCall="handleStartVideoCall"
-              @startAudioCall="handleStartAudioCall"></chat>
+              @startCall="handleStartCall"></chat>
 
         <div class="body-right" v-if="subType === 3">
           <div style="height: 60px;background-color: var(--maxWhite)">
@@ -717,31 +716,51 @@ export default {
         message.content = parseMessage(message.content)
 
         // 处理音视频通话消息
-        if (message.messageType >= 3 && message.messageType <= 7) {
+        if (message.messageType >= 3 && message.messageType <= 8) {
           console.log('[音视频通话] 收到通话消息:', message)
           switch (message.messageType) {
             case 3: // 视频通话请求
-              console.log('[音视频通话] 收到视频通话请求')
-              showVideoCall.value = true
-              callType.value = 'video'
-              isCaller.value = false
-              currentCallTargetId.value = message.fromId
-              break
             case 4: // 语音通话请求
-              console.log('[音视频通话] 收到语音通话请求')
-              showVideoCall.value = true
-              callType.value = 'audio'
-              isCaller.value = false
-              currentCallTargetId.value = message.fromId
-              break
-            case 5: // 接受通话
-              console.log('[音视频通话] 对方接受通话')
-             
-              if (isCaller.value) {
-                // 开始建立 WebRTC 连接
-                startCallConnection()
+              console.log('[音视频通话] 收到通话请求')
+              try {
+                const offer = JSON.parse(message.content)
+                if (offer.type === 'offer') {
+                  showVideoCall.value = true
+                  callType.value = message.messageType === 3 ? 'video' : 'audio'
+                  isCaller.value = false
+                  currentCallTargetId.value = message.fromId
+                  // 保存 offer 供 acceptCall 使用
+                  window.pendingOffer = new RTCSessionDescription({
+                    type: 'offer',
+                    sdp: offer.sdp
+                  })
+                }
+              } catch (error) {
+                console.error('[音视频通话] 解析 offer 失败:', error)
               }
-              break
+            break
+            case 5: // 接受通话
+            console.log('[音视频通话] 对方接受通话')
+            try {
+              const answer = JSON.parse(message.content)
+              if (answer.type === 'answer') {
+                const peerConnection = window.currentPeerConnection
+                if (peerConnection && peerConnection.signalingState !== 'closed') {
+                  // 创建正确的 RTCSessionDescription 对象
+                  const sessionDescription = new RTCSessionDescription({
+                    type: 'answer',
+                    sdp: answer.sdp
+                  })
+                  peerConnection.setRemoteDescription(sessionDescription)
+                    .catch(error => {
+                      console.error('[音视频通话] 设置远程描述失败:', error)
+                    })
+                }
+              }
+            } catch (error) {
+              console.error('[音视频通话] 解析 answer 失败:', error)
+            }
+            break
             case 6: // 拒绝通话
               console.log('[音视频通话] 对方拒绝通话')
               showVideoCall.value = false
@@ -749,6 +768,28 @@ export default {
             case 7: // 取消通话
               console.log('[音视频通话] 对方取消通话')
               showVideoCall.value = false
+              break
+            case 8: // ICE 候选
+              try {
+                const iceData = JSON.parse(message.content)
+                if (iceData.type === 'candidate') {
+                  const peerConnection = window.currentPeerConnection
+                  if (peerConnection && peerConnection.remoteDescription) {
+                    peerConnection.addIceCandidate(new RTCIceCandidate(iceData.candidate))
+                      .catch(error => {
+                        console.error('[音视频通话] 添加 ICE candidate 失败:', error)
+                      })
+                  } else {
+                    // 如果远程描述还未设置,将 ICE candidate 保存起来
+                    if (!window.pendingIceCandidates) {
+                      window.pendingIceCandidates = []
+                    }
+                    window.pendingIceCandidates.push(iceData.candidate)
+                  }
+                }
+              } catch (error) {
+                console.error('[音视频通话] 解析 ICE candidate 失败:', error)
+              }
               break
           }
           return
@@ -835,23 +876,23 @@ export default {
       }
     }
 
-    function sendMsg(msg, callback) {
+    function sendMsg (msg, callback) {
       try {
-        console.log('[WebSocket] 准备发送消息:', msg);
+        console.log('[WebSocket] 准备发送消息:', msg)
         if (!im || !im.tio || !im.tio.ws) {
-          console.error('[WebSocket] 发送失败: WebSocket 未连接');
-          if (callback) callback(false);
-          return false;
+          console.error('[WebSocket] 发送失败: WebSocket 未连接')
+          if (callback) callback(false)
+          return false
         }
-        
-        const success = im.sendMsg(msg);
-        console.log('[WebSocket] 消息发送结果:', success);
-        if (callback) callback(success);
-        return success;
+
+        const success = im.sendMsg(msg)
+        console.log('[WebSocket] 消息发送结果:', success)
+        if (callback) callback(success)
+        return success
       } catch (error) {
-        console.error('[WebSocket] 发送消息时发生错误:', error);
-        if (callback) callback(false);
-        return false;
+        console.error('[WebSocket] 发送消息时发生错误:', error)
+        if (callback) callback(false)
+        return false
       }
     }
 
@@ -886,7 +927,7 @@ export default {
             data.imMessageBadge[current] = 0
           }
         }
-        
+
         nextTick(() => {
           const msgContainer = document.getElementsByClassName('msg-container')
           if (msgContainer && msgContainer.length > 0) {
@@ -1009,17 +1050,6 @@ export default {
 
     
 
-    // 开始建立通话连接
-    const startCallConnection = async () => {
-      try {
-        console.log('[音视频通话] 开始建立连接')
-        // 这里添加建立 WebRTC 连接的逻辑
-        // TODO: 实现 WebRTC 连接
-      } catch (error) {
-        console.error('[音视频通话] 建立连接失败:', error)
-      }
-    }
-
     function handleCallOffer (data) {
       const message = {
         messageType: 3,
@@ -1048,9 +1078,8 @@ export default {
     }
 
     function handleCallReject (targetId) {
-      
-      //console.log('[音视频通话] 发送拒绝通话消息')
-      //im.sendMsg(JSON.stringify(message))
+      // console.log('[音视频通话] 发送拒绝通话消息')
+      // im.sendMsg(JSON.stringify(message))
       showVideoCall.value = false
     }
 
@@ -1058,34 +1087,24 @@ export default {
       showVideoCall.value = false
     }
 
-    function handleIceCandidate (data) {
-      const message = {
-        messageType: 7,
-        content: JSON.stringify({
-          candidate: data.candidate
-        }),
-        fromId: store.state.currentUser.id,
-        toId: data.targetId,
-        avatar: store.state.currentUser.avatar
+    // 处理接收到的 ICE 候选 2025-05-07
+    const handleIceCandidate = async (candidate) => {
+      try {
+        const peerConnection = window.currentPeerConnection
+        if (peerConnection) {
+          await peerConnection.addIceCandidate(new RTCIceCandidate(candidate))
+        }
+      } catch (error) {
+        console.error('[音视频通话] 处理 ICE 候选失败:', error)
       }
-      im.sendMsg(JSON.stringify(message))
     }
 
     // 处理开始视频通话
-    function handleStartVideoCall (data) {
+    function handleStartCall () {
       showVideoCall.value = true
-      callType.value = data.type
-      isCaller.value = true
-      currentCallTargetId.value = data.targetId
     }
 
-    // 处理开始语音通话
-    function handleStartAudioCall (data) {
-      showVideoCall.value = true
-      callType.value = data.type
-      isCaller.value = true
-      currentCallTargetId.value = data.targetId
-    }
+    
 
     // 修改 WebSocket 消息监听器
     onMounted(() => {
@@ -1102,7 +1121,32 @@ export default {
     onBeforeUnmount(() => {
       console.log('[WebSocket] 移除消息监听器')
       window.removeEventListener('imMessage', getIm)
+      
+      // 清理视频流和连接 2025-05-07
+      if (window.currentPeerConnection) {
+        window.currentPeerConnection.close()
+        window.currentPeerConnection = null
+      }
+      
+      if (localVideo.value && localVideo.value.srcObject) {
+        localVideo.value.srcObject.getTracks().forEach(track => track.stop())
+      }
+      if (remoteVideo.value && remoteVideo.value.srcObject) {
+        remoteVideo.value.srcObject.getTracks().forEach(track => track.stop())
+      }
     })
+
+    // 处理接收到的 answer  2025-05-07
+    const handleAnswer = async (answer) => {
+      try {
+        const peerConnection = window.currentPeerConnection
+        if (peerConnection) {
+          await peerConnection.setRemoteDescription(new RTCSessionDescription(answer))
+        }
+      } catch (error) {
+        console.error('[音视频通话] 处理 answer 失败:', error)
+      }
+    }
 
     return {
       ...toRefs(data),
@@ -1142,11 +1186,10 @@ export default {
       handleCallAnswer,
       handleCallReject,
       handleCallCancel,
-      handleIceCandidate,
-      handleStartVideoCall,
-      handleStartAudioCall,
-      startCallConnection,
-      getIm
+      handleIceCandidate,//2025-05-07
+      handleStartCall,
+      getIm,
+      handleAnswer//2025-05-07
     }
   }
 }

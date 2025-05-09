@@ -144,7 +144,7 @@ public class ImWsMsgHandler implements IWsMsgHandler {
             WsResponse wsResponse = WsResponse.fromText(JSON.toJSONString(imMessage), ImConfigConst.CHARSET);
             
             // 处理音视频通话相关消息
-            if (imMessage.getMessageType().intValue() >= ImEnum.MESSAGE_TYPE_CALL_OFFER.getCode() && 
+            if (imMessage.getMessageType().intValue() >= ImEnum.MESSAGE_TYPE_CALL_VIDEO.getCode() &&
                 imMessage.getMessageType().intValue() <= ImEnum.MESSAGE_TYPE_CALL_ICE.getCode()) {
                 log.info("收到音视频通话消息，准备转发...");
                 log.info("消息类型: {}", imMessage.getMessageType());
