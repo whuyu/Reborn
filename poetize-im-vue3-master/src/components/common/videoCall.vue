@@ -6,13 +6,25 @@
         <span>{{ callStatus }}</span>
       </div>
 
-      <div class="video-call-content">
-        <div class="remote-video" v-if="callType === 'video'">
+      <div class="video-call-content" v-if="callType === 'video'">
+        <div class="remote-video">
           <video ref="remoteVideo" autoplay playsinline></video>
         </div>
-        <div class="local-video" v-if="callType === 'video'">
+        <div class="local-video">
           <video ref="localVideo" autoplay playsinline muted></video>
         </div>
+      </div>
+      
+      <div class="audio-call-content" v-if="callType === 'audio'">
+        <div class="audio-avatar">
+          <n-avatar 
+            :src="targetAvatar"
+            :size="100"
+            object-fit="cover"
+          />
+        </div>
+        <div class="audio-status">{{ callStatus }}</div>
+        <audio ref="remoteAudio" autoplay></audio>
       </div>
 
       <div class="video-call-controls">
@@ -53,7 +65,7 @@
 </template>
 
 <script>
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import { useStore } from 'vuex'
 import { ElMessage } from 'element-plus'
 
@@ -81,7 +93,31 @@ export default {
     const callStatus = ref('等待对方接听...')
     const localVideo = ref(null)
     const remoteVideo = ref(null)
+    const remoteAudio = ref(null)
     const store = useStore()
+    const showCallModal = ref(props.showCallModal)
+    
+    // 监听props变化
+    watch(() => props.showCallModal, (newVal) => {
+      showCallModal.value = newVal
+      if (newVal && props.isCaller) {
+       callStatus.value = '正在呼叫...'
+     }
+    })
+    
+    // 监听本地状态变化
+    watch(showCallModal, (newVal) => {
+      emit('update:showCallModal', newVal)
+    })
+    
+    // 获取目标用户头像
+    const targetAvatar = computed(() => {
+      // 这里应该根据实际情况获取目标用户的头像
+      // 可以从store中获取，或者父组件传入
+      return store.state.friends && store.state.friends[props.targetId] 
+        ? store.state.friends[props.targetId].avatar 
+        : '';
+    })
 
     // 设置本地视频流
     const setLocalStream = (stream) => {
@@ -92,10 +128,15 @@ export default {
 
     // 设置远程视频流
     const setRemoteStream = (stream) => {
-      if (remoteVideo.value) {
+      if (props.callType === 'video' && remoteVideo.value) {
         remoteVideo.value.srcObject = stream
-        callStatus.value = '通话中...'
+      } else if (props.callType === 'audio' && remoteAudio.value) {
+        remoteAudio.value.srcObject = stream
+        remoteAudio.value.play().catch(err => {
+          console.warn('播放远端音频失败', err)
+        })
       }
+      callStatus.value = '通话中...'
     }
 
     // 接受通话 2025-05-07
@@ -137,19 +178,10 @@ export default {
         
         // 监听远程流
         peerConnection.ontrack = (event) => {
-        console.log('[远端轨道]', event.track.kind)  // 应该包含 audio
-        const remoteStream = event.streams[0]
-        setRemoteStream(remoteStream)
-        
-        // 播放音频（尤其对 audio-only 情况）
-        const remoteAudio = document.getElementById('remoteAudio')
-        if (remoteAudio) {
-          remoteAudio.srcObject = remoteStream
-          remoteAudio.play().catch(err => {
-            console.warn('播放远端音频失败', err)
-          })
+          console.log('[远端轨道]', event.track.kind)  // 应该包含 audio
+          const remoteStream = event.streams[0]
+          setRemoteStream(remoteStream)
         }
-      }
         
         // 监听 ICE 候选
         peerConnection.onicecandidate = (event) => {
@@ -187,9 +219,9 @@ export default {
             toId: props.targetId
           }
           emit('sendMsg', JSON.stringify(message), () => {
-        console.log('[音视频通话] 接受通话消息发送成功');
-        emit('acceptCall')
-      })
+            console.log('[音视频通话] 接受通话消息发送成功');
+            emit('accept-call')
+          })
           
           // 处理之前缓存的 ICE candidates
           if (window.pendingIceCandidates) {
@@ -228,7 +260,7 @@ export default {
       console.log('[音视频通话] 发送拒绝通话消息:', message)
       emit('sendMsg', JSON.stringify(message), () => {
         console.log('[音视频通话] 拒绝通话消息发送成功')
-        emit('rejectCall', props.targetId)
+        emit('reject-call', props.targetId)
       })
     }
 
@@ -245,7 +277,7 @@ export default {
       console.log('[音视频通话] 发送取消通话消息:', message)
       emit('sendMsg', JSON.stringify(message), () => {
         console.log('[音视频通话] 取消通话消息发送成功')
-        emit('cancelCall', props.targetId)
+        emit('cancel-call', props.targetId)
       })
     }
 
@@ -257,12 +289,24 @@ export default {
       if (remoteVideo.value && remoteVideo.value.srcObject) {
         remoteVideo.value.srcObject.getTracks().forEach(track => track.stop())
       }
+      // 清理音频流
+      if (remoteAudio.value && remoteAudio.value.srcObject) {
+        remoteAudio.value.srcObject.getTracks().forEach(track => track.stop())
+      }
+      
+      // 关闭 PeerConnection
+      if (window.currentPeerConnection) {
+        window.currentPeerConnection.close()
+        window.currentPeerConnection = null
+      }
     })
 
     return {
       callStatus,
       localVideo,
       remoteVideo,
+      remoteAudio,
+      targetAvatar,
       setLocalStream,
       setRemoteStream,
       acceptCall,
@@ -298,6 +342,28 @@ export default {
   overflow: hidden;
 }
 
+.audio-call-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 300px;
+  background: var(--midWhite);
+  border-radius: 4px;
+  padding: 20px;
+}
+
+.audio-avatar {
+  margin-bottom: 20px;
+}
+
+.audio-status {
+  font-size: 18px;
+  margin: 20px 0;
+  color: var(--greyFont);
+}
+
 .remote-video {
   width: 100%;
   height: 100%;
@@ -326,3 +392,5 @@ video {
   object-fit: cover;
 }
 </style>
+
+

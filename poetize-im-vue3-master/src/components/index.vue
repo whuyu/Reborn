@@ -575,13 +575,11 @@
       :call-type="callType"
       :is-caller="isCaller"
       :target-id="currentCallTargetId"
-      :show-call-modal="showVideoCall"
-      @send-call-offer="handleCallOffer"
-      @send-call-answer="handleCallAnswer"
-      @rejectCall="handleCallReject"
-      @cancelCall="handleCallCancel"
-      @send-ice-candidate="handleIceCandidate"
-      @sendMsg="sendMsg"
+      v-model:show-call-modal="showVideoCall"
+      @accept-call="handleCallAccepted"
+      @reject-call="handleCallReject"
+      @cancel-call="handleCallCancel"
+      @send-msg="sendMsg"
     />
   </div>
 </template>
@@ -666,6 +664,8 @@ export default {
     const callType = ref('')
     const isCaller = ref(false)
     const currentCallTargetId = ref('')
+
+    const showCallModal = ref(false)
 
     if (!$common.isEmpty(store.state.currentUser)) {
       getImageList()
@@ -1099,9 +1099,11 @@ export default {
       }
     }
 
-    // 处理开始视频通话
-    function handleStartCall () {
-      showVideoCall.value = true
+        function handleStartCall(params) {
+      showVideoCall.value = true;
+      callType.value = params.type;
+      isCaller.value = params.isCaller;
+      currentCallTargetId.value = params.targetId;
     }
 
     
@@ -1148,6 +1150,11 @@ export default {
       }
     }
 
+    function handleCallAccepted() {
+      console.log('[音视频通话] 对方接受通话')
+      // 在这里可以添加任何需要在通话被接受时执行的逻辑
+    }
+
     return {
       ...toRefs(data),
       ...toRefs(bindEmailData),
@@ -1189,7 +1196,7 @@ export default {
       handleIceCandidate,//2025-05-07
       handleStartCall,
       getIm,
-      handleAnswer//2025-05-07
+      handleAnswer//2025-05-07,
     }
   }
 }

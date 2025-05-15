@@ -591,11 +591,7 @@ export default {
         return
       }
 
-
-
       if (!$common.isEmpty(props.currentChatFriendId)) {
-
-
         const message = {
           messageType: 1,
           content: data.msg,
@@ -610,10 +606,6 @@ export default {
         if (success) {
           data.msg = ''
         }
-
-
-
-
       } else if (!$common.isEmpty(props.currentChatGroupId)) {
         const message = {
           messageType: 2,
@@ -635,16 +627,13 @@ export default {
 
     // 开始视频通话
     function startVideoCall () {
-      if (!$common.isEmpty(props.currentChatFriendId)) {
-        console.log('[音视频通话] 开始视频通话:', props.currentChatFriendId);
+      if (!$common.isEmpty(props.currentChatFriendId)) { 
+        console.log('[音视频通话] 开始视频通话:', props.currentChatFriendId)
         data.callType = 'video'
         data.isCaller = true
         data.currentCallTargetId = props.currentChatFriendId
         data.showVideoCall = true
-        context.emit('startCall')
-
-
-
+        // context.emit('startCall')
 
         // 创建 RTCPeerConnection 实例
         const configuration = {
@@ -655,6 +644,16 @@ export default {
         }
 
         const peerConnection = new RTCPeerConnection(configuration)
+
+        peerConnection.ontrack = (event) => {
+          const remoteStream = event.streams[0]
+          window.remoteStream = remoteStream // 可选，调试用
+          const remoteVideo = document.getElementById('remoteVideo') // 或 remoteAudio
+          if (remoteVideo) {
+            remoteVideo.srcObject = remoteStream
+            remoteVideo.play().catch(e => console.warn('播放失败:', e))
+          }
+        }
 
         // 获取本地媒体流
         navigator.mediaDevices.getUserMedia({
@@ -667,7 +666,7 @@ export default {
             const audioTrack = localStream.getAudioTracks()[0]
             audioTrack.enabled = true
           }
-          
+
           // 将本地流添加到 peerConnection
           localStream.getTracks().forEach(track => {
             peerConnection.addTrack(track, localStream)
@@ -677,15 +676,14 @@ export default {
           const offer = await peerConnection.createOffer()
           await peerConnection.setLocalDescription(offer)
 
-
           // 发送 offer 消息
           const message = {
             messageType: 3,
-              fromId: store.state.currentUser.id,
-              toId: props.currentChatFriendId,
-              content: JSON.stringify({
+            fromId: store.state.currentUser.id,
+            toId: props.currentChatFriendId,
+            content: JSON.stringify({
               type: 'offer',
-              sdp: offer.sdp  // 只发送 sdp 字符串
+              sdp: offer.sdp // 只发送 sdp 字符串
             })
           }
 
@@ -719,13 +717,13 @@ export default {
     // 开始语音通话
     function startAudioCall () {
       if (!$common.isEmpty(props.currentChatFriendId)) {
-        console.log('[音视频通话] 开始语音通话:', props.currentChatFriendId);
-        data.callType = 'audio'
-        data.isCaller = true
-        data.currentCallTargetId = props.currentChatFriendId
-        data.showVideoCall = true
-        context.emit('startCall')
-
+        console.log('[音视频通话] 开始语音通话:', props.currentChatFriendId)
+        context.emit('startCall', {
+          type: 'audio',
+          targetId: props.currentChatFriendId,
+          isCaller: true
+        });
+        // context.emit('startCall')
 
         // 创建 RTCPeerConnection 实例
         const configuration = {
@@ -742,21 +740,31 @@ export default {
           audio: true,
           video: false
         }).then(async (localStream) => {
+          window.localStream = localStream
           // 设置音频输出设备
           if (localStream.getAudioTracks().length > 0) {
             const audioTrack = localStream.getAudioTracks()[0]
             audioTrack.enabled = true
           }
-          
+
           // 将本地流添加到 peerConnection
           localStream.getTracks().forEach(track => {
             peerConnection.addTrack(track, localStream)
           })
 
+          peerConnection.ontrack = (event) => {
+            const remoteStream = event.streams[0]
+            window.remoteStream = remoteStream // 可选，调试用
+            const remoteAudio = document.getElementById('remoteAudio') // 或 remoteAudio
+            if (remoteAudio) {
+              remoteAudio.srcObject = remoteStream
+              remoteAudio.play().catch(e => console.warn('播放失败:', e))
+            }
+          }
+
           // 创建并发送 offer
           const offer = await peerConnection.createOffer()
           await peerConnection.setLocalDescription(offer)
-
 
           // 发送 offer 消息
           const message = {
