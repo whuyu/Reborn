@@ -627,12 +627,13 @@ export default {
 
     // 开始视频通话
     function startVideoCall () {
-      if (!$common.isEmpty(props.currentChatFriendId)) { 
+      if (!$common.isEmpty(props.currentChatFriendId)) {
         console.log('[音视频通话] 开始视频通话:', props.currentChatFriendId)
-        data.callType = 'video'
-        data.isCaller = true
-        data.currentCallTargetId = props.currentChatFriendId
-        data.showVideoCall = true
+        context.emit('startCall', {
+          type: 'video',
+          targetId: props.currentChatFriendId,
+          isCaller: true
+        })
         // context.emit('startCall')
 
         // 创建 RTCPeerConnection 实例
@@ -722,7 +723,7 @@ export default {
           type: 'audio',
           targetId: props.currentChatFriendId,
           isCaller: true
-        });
+        })
         // context.emit('startCall')
 
         // 创建 RTCPeerConnection 实例

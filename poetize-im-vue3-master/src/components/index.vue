@@ -576,7 +576,7 @@
       :is-caller="isCaller"
       :target-id="currentCallTargetId"
       v-model:show-call-modal="showVideoCall"
-      @accept-call="handleCallAccepted"
+
       @reject-call="handleCallReject"
       @cancel-call="handleCallCancel"
       @send-msg="sendMsg"
@@ -665,8 +665,6 @@ export default {
     const isCaller = ref(false)
     const currentCallTargetId = ref('')
 
-    const showCallModal = ref(false)
-
     if (!$common.isEmpty(store.state.currentUser)) {
       getImageList()
       getSystemMessages()
@@ -738,29 +736,30 @@ export default {
               } catch (error) {
                 console.error('[音视频通话] 解析 offer 失败:', error)
               }
-            break
+              break
             case 5: // 接受通话
-            console.log('[音视频通话] 对方接受通话')
-            try {
-              const answer = JSON.parse(message.content)
-              if (answer.type === 'answer') {
-                const peerConnection = window.currentPeerConnection
-                if (peerConnection && peerConnection.signalingState !== 'closed') {
+
+              console.log('[音视频通话] 对方接受通话')
+              try {
+                const answer = JSON.parse(message.content)
+                if (answer.type === 'answer') {
+                  const peerConnection = window.currentPeerConnection
+                  if (peerConnection && peerConnection.signalingState !== 'closed') {
                   // 创建正确的 RTCSessionDescription 对象
-                  const sessionDescription = new RTCSessionDescription({
-                    type: 'answer',
-                    sdp: answer.sdp
-                  })
-                  peerConnection.setRemoteDescription(sessionDescription)
-                    .catch(error => {
-                      console.error('[音视频通话] 设置远程描述失败:', error)
+                    const sessionDescription = new RTCSessionDescription({
+                      type: 'answer',
+                      sdp: answer.sdp
                     })
+                    peerConnection.setRemoteDescription(sessionDescription)
+                      .catch(error => {
+                        console.error('[音视频通话] 设置远程描述失败:', error)
+                      })
+                  }
                 }
+              } catch (error) {
+                console.error('[音视频通话] 解析 answer 失败:', error)
               }
-            } catch (error) {
-              console.error('[音视频通话] 解析 answer 失败:', error)
-            }
-            break
+              break
             case 6: // 拒绝通话
               console.log('[音视频通话] 对方拒绝通话')
               showVideoCall.value = false
@@ -1048,8 +1047,6 @@ export default {
       }
     }
 
-    
-
     function handleCallOffer (data) {
       const message = {
         messageType: 3,
@@ -1099,14 +1096,13 @@ export default {
       }
     }
 
-        function handleStartCall(params) {
-      showVideoCall.value = true;
-      callType.value = params.type;
-      isCaller.value = params.isCaller;
-      currentCallTargetId.value = params.targetId;
+    function handleStartCall (params) {
+      // showVideoCall.value = true
+      showVideoCall.value = !showVideoCall.value
+      callType.value = params.type
+      isCaller.value = params.isCaller
+      currentCallTargetId.value = params.targetId
     }
-
-    
 
     // 修改 WebSocket 消息监听器
     onMounted(() => {
@@ -1123,13 +1119,13 @@ export default {
     onBeforeUnmount(() => {
       console.log('[WebSocket] 移除消息监听器')
       window.removeEventListener('imMessage', getIm)
-      
+
       // 清理视频流和连接 2025-05-07
       if (window.currentPeerConnection) {
         window.currentPeerConnection.close()
         window.currentPeerConnection = null
       }
-      
+
       if (localVideo.value && localVideo.value.srcObject) {
         localVideo.value.srcObject.getTracks().forEach(track => track.stop())
       }
@@ -1148,11 +1144,6 @@ export default {
       } catch (error) {
         console.error('[音视频通话] 处理 answer 失败:', error)
       }
-    }
-
-    function handleCallAccepted() {
-      console.log('[音视频通话] 对方接受通话')
-      // 在这里可以添加任何需要在通话被接受时执行的逻辑
     }
 
     return {
@@ -1193,10 +1184,10 @@ export default {
       handleCallAnswer,
       handleCallReject,
       handleCallCancel,
-      handleIceCandidate,//2025-05-07
+      handleIceCandidate, // 2025-05-07
       handleStartCall,
       getIm,
-      handleAnswer//2025-05-07,
+      handleAnswer// 2025-05-07,
     }
   }
 }

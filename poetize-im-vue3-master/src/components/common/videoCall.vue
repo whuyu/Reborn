@@ -1,6 +1,7 @@
 <template>
   <n-modal v-model:show="showCallModal" :mask-closable="false">
     <div class="video-call-container">
+
       <div class="video-call-header">
         <span>{{ callType === 'video' ? '视频通话' : '语音通话' }}</span>
         <span>{{ callStatus }}</span>
@@ -14,10 +15,10 @@
           <video ref="localVideo" autoplay playsinline muted></video>
         </div>
       </div>
-      
+
       <div class="audio-call-content" v-if="callType === 'audio'">
         <div class="audio-avatar">
-          <n-avatar 
+          <n-avatar
             :src="targetAvatar"
             :size="100"
             object-fit="cover"
@@ -40,7 +41,7 @@
           </n-button>
         </template>
         <template v-else>
-          <n-button @click="acceptCall" type="success" circle style="margin-right: 20px">
+          <n-button v-if="isButton" @click="acceptCall" type="success" circle style="margin-right: 20px">
             <template #icon>
               <svg viewBox="0 0 1024 1024" width="24" height="24">
                 <path d="M512 0C229.2 0 0 229.2 0 512s229.2 512 512 512 512-229.2 512-512S794.8 0 512 0z m0 960C264.6 960 64 759.4 64 512S264.6 64 512 64s448 200.6 448 448-200.6 448-448 448z" fill="#FFFFFF"/>
@@ -49,6 +50,7 @@
               </svg>
             </template>
           </n-button>
+
           <n-button @click="rejectCall" type="error" circle>
             <template #icon>
               <svg viewBox="0 0 1024 1024" width="24" height="24">
@@ -62,10 +64,11 @@
       </div>
     </div>
   </n-modal>
+
 </template>
 
 <script>
-import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch, computed, toRef } from 'vue'
 import { useStore } from 'vuex'
 import { ElMessage } from 'element-plus'
 
@@ -89,34 +92,47 @@ export default {
       default: false
     }
   },
+
   setup (props, { emit }) {
-    const callStatus = ref('等待对方接听...')
+    const isButton = ref(true)
+    const callStatus = ref('等待接听...')
     const localVideo = ref(null)
     const remoteVideo = ref(null)
     const remoteAudio = ref(null)
     const store = useStore()
-    const showCallModal = ref(props.showCallModal)
-    
-    // 监听props变化
-    watch(() => props.showCallModal, (newVal) => {
-      showCallModal.value = newVal
-      if (newVal && props.isCaller) {
-       callStatus.value = '正在呼叫...'
-     }
-    })
-    
-    // 监听本地状态变化
-    watch(showCallModal, (newVal) => {
-      emit('update:showCallModal', newVal)
-    })
-    
+    const showCallModal = toRef(props, 'showCallModal')
+
+    // console.log("showCallModal")
+    // console.log(props.showCallModal)
+    // console.log("test")
+    // const test=ref(true)
+    // console.log(test)
+
+    // console.log("showCallModal")
+    console.log(props.showCallModal)
+    // console.log(props)
+
+    // 修改后的 watch 写法
+    if (props.showCallModal && props.isCaller) {
+      console.log('props.showCallModal 变化1111111111111111')
+      callStatus.value = '正在呼叫...'
+    }
+
+    watch(
+      showCallModal,
+      (newVal) => {
+        console.log('本地 showCallModal 变化', newVal)
+        emit('update:showCallModal', newVal)
+      }
+    )
+
     // 获取目标用户头像
     const targetAvatar = computed(() => {
       // 这里应该根据实际情况获取目标用户的头像
       // 可以从store中获取，或者父组件传入
-      return store.state.friends && store.state.friends[props.targetId] 
-        ? store.state.friends[props.targetId].avatar 
-        : '';
+      return store.state.friends && store.state.friends[props.targetId]
+        ? store.state.friends[props.targetId].avatar
+        : ''
     })
 
     // 设置本地视频流
@@ -142,6 +158,7 @@ export default {
     // 接受通话 2025-05-07
     const acceptCall = async () => {
       try {
+        isButton.value = false
         // 创建 RTCPeerConnection 实例
         const configuration = {
           iceServers: [
@@ -149,15 +166,15 @@ export default {
             { urls: 'stun:stun1.l.google.com:19302' }
           ]
         }
-        
+
         const peerConnection = new RTCPeerConnection(configuration)
-        
+
         // 获取本地媒体流
         const constraints = {
           audio: true,
           video: props.callType === 'video'
         }
-        
+
         const localStream = await navigator.mediaDevices.getUserMedia(constraints)
         window.localStream = localStream
         // 设置音频输出设备
@@ -165,24 +182,24 @@ export default {
           const audioTrack = localStream.getAudioTracks()[0]
           audioTrack.enabled = true
         }
-        
+
         // 将本地流添加到 peerConnection
         localStream.getTracks().forEach(track => {
           peerConnection.addTrack(track, localStream)
         })
-        
+
         // 设置本地视频流
         if (props.callType === 'video') {
           setLocalStream(localStream)
         }
-        
+
         // 监听远程流
         peerConnection.ontrack = (event) => {
-          console.log('[远端轨道]', event.track.kind)  // 应该包含 audio
+          console.log('[远端轨道]', event.track.kind) // 应该包含 audio
           const remoteStream = event.streams[0]
           setRemoteStream(remoteStream)
         }
-        
+
         // 监听 ICE 候选
         peerConnection.onicecandidate = (event) => {
           if (event.candidate) {
@@ -198,16 +215,16 @@ export default {
             emit('sendMsg', JSON.stringify(message))
           }
         }
-        
+
         // 设置远程描述（offer）
         const offer = window.pendingOffer
         if (offer) {
           await peerConnection.setRemoteDescription(new RTCSessionDescription(offer))
-          
+
           // 创建应答
           const answer = await peerConnection.createAnswer()
           await peerConnection.setLocalDescription(answer)
-          
+
           // 发送应答
           const message = {
             messageType: 5,
@@ -219,10 +236,10 @@ export default {
             toId: props.targetId
           }
           emit('sendMsg', JSON.stringify(message), () => {
-            console.log('[音视频通话] 接受通话消息发送成功');
+            console.log('[音视频通话] 接受通话消息发送成功')
             emit('accept-call')
           })
-          
+
           // 处理之前缓存的 ICE candidates
           if (window.pendingIceCandidates) {
             for (const candidate of window.pendingIceCandidates) {
@@ -235,12 +252,11 @@ export default {
             window.pendingIceCandidates = []
           }
         }
-        
+
         // 保存 peerConnection 实例
         window.currentPeerConnection = peerConnection
-        
+
         callStatus.value = '通话中...'
-        
       } catch (error) {
         console.error('[音视频通话] 接受通话失败:', error)
         ElMessage.error('无法访问摄像头或麦克风')
@@ -293,7 +309,7 @@ export default {
       if (remoteAudio.value && remoteAudio.value.srcObject) {
         remoteAudio.value.srcObject.getTracks().forEach(track => track.stop())
       }
-      
+
       // 关闭 PeerConnection
       if (window.currentPeerConnection) {
         window.currentPeerConnection.close()
@@ -302,6 +318,7 @@ export default {
     })
 
     return {
+      isButton,
       callStatus,
       localVideo,
       remoteVideo,
@@ -392,5 +409,3 @@ video {
   object-fit: cover;
 }
 </style>
-
-
