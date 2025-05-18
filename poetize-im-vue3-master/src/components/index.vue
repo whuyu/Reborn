@@ -576,10 +576,10 @@
       :is-caller="isCaller"
       :target-id="currentCallTargetId"
       v-model:show-call-modal="showVideoCall"
-
       @reject-call="handleCallReject"
       @cancel-call="handleCallCancel"
       @send-msg="sendMsg"
+
     />
   </div>
 </template>
@@ -665,6 +665,8 @@ export default {
     const isCaller = ref(false)
     const currentCallTargetId = ref('')
 
+
+
     if (!$common.isEmpty(store.state.currentUser)) {
       getImageList()
       getSystemMessages()
@@ -738,6 +740,7 @@ export default {
               }
               break
             case 5: // 接受通话
+
 
               console.log('[音视频通话] 对方接受通话')
               try {

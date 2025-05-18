@@ -102,21 +102,14 @@ export default {
     const store = useStore()
     const showCallModal = toRef(props, 'showCallModal')
 
-    // console.log("showCallModal")
-    // console.log(props.showCallModal)
-    // console.log("test")
-    // const test=ref(true)
-    // console.log(test)
 
-    // console.log("showCallModal")
     console.log(props.showCallModal)
-    // console.log(props)
 
-    // 修改后的 watch 写法
     if (props.showCallModal && props.isCaller) {
-      console.log('props.showCallModal 变化1111111111111111')
+      //console.log('props.showCallModal 变化1111111111111111')
       callStatus.value = '正在呼叫...'
     }
+
 
     watch(
       showCallModal,
@@ -365,21 +358,31 @@ export default {
   align-items: center;
   justify-content: center;
   width: 100%;
-  height: 300px;
+  /* 修改高度设置 */
+  min-height: 200px; /* 最小高度保障基础显示 */
+  height: 40vh; /* 动态高度基于视口 */
+  max-height: 400px; /* 最大高度限制 */
   background: var(--midWhite);
   border-radius: 4px;
-  padding: 20px;
+  padding: 20px 10px; /* 左右留白减少 */
+  box-sizing: border-box; /* 包含padding在尺寸计算中 */
 }
 
 .audio-avatar {
-  margin-bottom: 20px;
+  margin-bottom: 1.5em; /* 改用相对单位 */
+  flex-shrink: 0; /* 防止头像被压缩 */
 }
 
 .audio-status {
-  font-size: 18px;
-  margin: 20px 0;
+  font-size: clamp(16px, 4vw, 18px); /* 响应式字体大小 */
+  margin: 1em 0; /* 相对单位间距 */
   color: var(--greyFont);
+  text-align: center; /* 文字居中 */
+  line-height: 1.4; /* 行高优化 */
+  max-width: 90%; /* 防止长文本溢出 */
+  word-break: break-word; /* 长文本换行 */
 }
+
 
 .remote-video {
   width: 100%;
