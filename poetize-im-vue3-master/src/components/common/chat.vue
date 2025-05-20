@@ -366,244 +366,337 @@
 </template>
 
 <script>
-  import {useStore} from 'vuex';
+import { useStore } from 'vuex'
 
-  import {useDialog} from 'naive-ui';
+import { useDialog } from 'naive-ui'
 
-  import {nextTick} from 'vue';
+import { nextTick, reactive, getCurrentInstance, onMounted, onBeforeUnmount, watchEffect, toRefs } from 'vue'
 
-  import {ElMessage} from "element-plus";
+import { ElMessage } from 'element-plus'
 
-  import emoji from "./emoji";
-  import uploadPicture from "./uploadPicture";
-  import {reactive, getCurrentInstance, onMounted, onBeforeUnmount, watchEffect, toRefs} from 'vue';
+import emoji from './emoji'
+import uploadPicture from './uploadPicture'
 
-  export default {
-    components: {
-      uploadPicture,
-      emoji
+import OpenAI from 'openai'
+
+export default {
+  components: {
+    uploadPicture,
+    emoji
+  },
+  props: {
+    currentChatFriendId: {
+      type: Number
     },
-    props: {
-      currentChatFriendId: {
-        type: Number
-      },
-      currentChatGroupId: {
-        type: Number
-      },
-      friends: {
-        type: Object
-      },
-      groups: {
-        type: Object
-      },
-      imMessages: {
-        type: Object
-      },
-      groupMessages: {
-        type: Object
-      },
-      imageList: {
-        type: Array
-      }
+    currentChatGroupId: {
+      type: Number
     },
-    setup(props, context) {
-      const globalProperties = getCurrentInstance().appContext.config.globalProperties;
-      const $common = globalProperties.$common;
-      const $http = globalProperties.$http;
-      const $constant = globalProperties.$constant;
-      const store = useStore();
-      const dialog = useDialog();
-
-      let data = reactive({
-        //发送消息
-        msg: '',
-
-        //聊天图片
-        showPictureDialog: false,
-        picturePrefix: '',
-        showPopoverImage: false
-      })
-
-      function sendPicture() {
-        if (!$common.isEmpty(props.currentChatFriendId)) {
-          data.picturePrefix = 'im/friendMessage';
-          data.showPictureDialog = true;
-        } else if (!$common.isEmpty(props.currentChatGroupId)) {
-          data.picturePrefix = 'im/groupMessage';
-          data.showPictureDialog = true;
-        }
+    friends: {
+      type: Object
+    },
+    groups: {
+      type: Object
+    },
+    imMessages: {
+      type: Object
+    },
+    groupMessages: {
+      type: Object
+    },
+    imageList: {
+      type: Array
+    }
+  },
+  setup (props, context) {
+    const globalProperties = getCurrentInstance().appContext.config.globalProperties
+    const $common = globalProperties.$common
+    const $http = globalProperties.$http
+    const $constant = globalProperties.$constant
+    const store = useStore()
+    const dialog = useDialog()
+    console.log('[Debug] API Key:', process.env.VUE_APP_DASHSCOPE_API_KEY)
+    const openai = new OpenAI(
+      {
+        apiKey: process.env.VUE_APP_DASHSCOPE_API_KEY,
+        baseURL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+        dangerouslyAllowBrowser: true
       }
+    )
 
-      function addPicture(res) {
-        data.msg += "[" + store.state.currentUser.username + "," + res + "]";
-        data.showPictureDialog = false;
-      }
+    const data = reactive({
+      // 发送消息
+      msg: '',
 
-      function openFriendCircle(userId, avatar, username) {
-        context.emit("openFriendCircle", userId, avatar, username);
-      }
+      // 聊天图片
+      showPictureDialog: false,
+      picturePrefix: '',
+      showPopoverImage: false
+    })
 
-      function addEmoji(key) {
-        data.msg += key;
-      }
-
-      function sendImage(url) {
-        data.msg += "[" + store.state.currentUser.username + "," + url + "]";
-        data.showPopoverImage = false;
-        doSend();
-      }
-
-      function sendPoetry(type) {
-        if (type === 1) {
-          sendGuShi();
-        } else if (type === 2) {
-          sendYiyan();
-        } else if (type === 3) {
-          sendDog();
-        } else if (type === 4) {
-          sendJitang();
-        } else if (type === 5) {
-          sendShehui();
-        }
-      }
-
-      function sendGuShi() {
-        let xhr = new XMLHttpRequest();
-        xhr.open('get', $constant.jinrishici);
-        xhr.onreadystatechange = function () {
-          if (xhr.readyState === 4) {
-            let guShi = JSON.parse(xhr.responseText).content;
-            if (!$common.isEmpty(guShi)) {
-              data.msg = guShi;
-              doSend()
-            }
-          }
-        };
-        xhr.send();
-      }
-
-      function sendYiyan() {
-        let xhr = new XMLHttpRequest();
-        xhr.open('get', $constant.yiyan);
-        xhr.onreadystatechange = function () {
-          if (xhr.readyState === 4) {
-            let yiyan = xhr.responseText;
-            if (!$common.isEmpty(yiyan)) {
-              data.msg = yiyan.substring(1, yiyan.length - 1);
-              doSend()
-            }
-          }
-        };
-        xhr.send();
-      }
-
-      function sendDog() {
-        let xhr = new XMLHttpRequest();
-        xhr.open('get', $constant.dog);
-        xhr.onreadystatechange = function () {
-          if (xhr.readyState === 4) {
-            let dog = xhr.responseText;
-            if (!$common.isEmpty(dog)) {
-              data.msg = dog.substring(1, dog.length - 1);
-              doSend()
-            }
-          }
-        };
-        xhr.send();
-      }
-
-      function sendJitang() {
-        let xhr = new XMLHttpRequest();
-        xhr.open('get', $constant.jitang);
-        xhr.onreadystatechange = function () {
-          if (xhr.readyState === 4) {
-            let jitang = xhr.responseText;
-            if (!$common.isEmpty(jitang)) {
-              data.msg = jitang.substring(1, jitang.length - 1);
-              doSend()
-            }
-          }
-        };
-        xhr.send();
-      }
-
-      function sendShehui() {
-        let xhr = new XMLHttpRequest();
-        xhr.open('get', $constant.shehui);
-        xhr.onreadystatechange = function () {
-          if (xhr.readyState === 4) {
-            let shehui = xhr.responseText;
-            if (!$common.isEmpty(shehui)) {
-              data.msg = shehui.substring(1, shehui.length - 1);
-              doSend()
-            }
-          }
-        };
-        xhr.send();
-      }
-
-      function send(e) {
-        if (e && (e.ctrlKey || e.shiftKey) && e.keyCode === 13) {
-          e.returnValue = false;
-          data.msg = data.msg + '\n';
-        } else if (e && e.keyCode === 13) {
-          e.returnValue = false;
-          doSend();
-        }
-      }
-
-      function doSend() {
-        if ($common.isEmpty(data.msg)) {
-          return;
-        }
-
-        if (!$common.isEmpty(props.currentChatFriendId)) {
-          let message = {
-            messageType: 1,
-            content: data.msg,
-            fromId: store.state.currentUser.id,
-            toId: props.currentChatFriendId,
-            avatar: store.state.currentUser.avatar
-          }
-          let success = false;
-          context.emit("sendMsg", JSON.stringify(message), val => {
-            success = val;
-          });
-          if (success) {
-            data.msg = '';
-          }
-        } else if (!$common.isEmpty(props.currentChatGroupId)) {
-          let message = {
-            messageType: 2,
-            content: data.msg,
-            fromId: store.state.currentUser.id,
-            groupId: props.currentChatGroupId,
-            avatar: store.state.currentUser.avatar,
-            username: store.state.currentUser.username
-          }
-          let success = false;
-          context.emit("sendMsg", JSON.stringify(message), val => {
-            success = val;
-          });
-          if (success) {
-            data.msg = '';
-          }
-        }
-      }
-
-      return {
-        ...toRefs(data),
-        openFriendCircle,
-        addEmoji,
-        addPicture,
-        sendPicture,
-        sendImage,
-        sendPoetry,
-        send,
-        doSend
+    function sendPicture () {
+      if (!$common.isEmpty(props.currentChatFriendId)) {
+        data.picturePrefix = 'im/friendMessage'
+        data.showPictureDialog = true
+      } else if (!$common.isEmpty(props.currentChatGroupId)) {
+        data.picturePrefix = 'im/groupMessage'
+        data.showPictureDialog = true
       }
     }
+
+    function addPicture (res) {
+      data.msg += '[' + store.state.currentUser.username + ',' + res + ']'
+      data.showPictureDialog = false
+    }
+
+    function openFriendCircle (userId, avatar, username) {
+      context.emit('openFriendCircle', userId, avatar, username)
+    }
+
+    function addEmoji (key) {
+      data.msg += key
+    }
+
+    function sendImage (url) {
+      data.msg += '[' + store.state.currentUser.username + ',' + url + ']'
+      data.showPopoverImage = false
+      doSend()
+    }
+
+    function sendPoetry (type) {
+      if (type === 1) {
+        sendGuShi()
+      } else if (type === 2) {
+        sendYiyan()
+      } else if (type === 3) {
+        sendDog()
+      } else if (type === 4) {
+        sendJitang()
+      } else if (type === 5) {
+        sendShehui()
+      }
+    }
+
+    function sendGuShi () {
+      const xhr = new XMLHttpRequest()
+      xhr.open('get', $constant.jinrishici)
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4) {
+          const guShi = JSON.parse(xhr.responseText).content
+          if (!$common.isEmpty(guShi)) {
+            data.msg = guShi
+            doSend()
+          }
+        }
+      }
+      xhr.send()
+    }
+
+    function sendYiyan () {
+      const xhr = new XMLHttpRequest()
+      xhr.open('get', $constant.yiyan)
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4) {
+          const yiyan = xhr.responseText
+          if (!$common.isEmpty(yiyan)) {
+            data.msg = yiyan.substring(1, yiyan.length - 1)
+            doSend()
+          }
+        }
+      }
+      xhr.send()
+    }
+
+    function sendDog () {
+      const xhr = new XMLHttpRequest()
+      xhr.open('get', $constant.dog)
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4) {
+          const dog = xhr.responseText
+          if (!$common.isEmpty(dog)) {
+            data.msg = dog.substring(1, dog.length - 1)
+            doSend()
+          }
+        }
+      }
+      xhr.send()
+    }
+
+    function sendJitang () {
+      const xhr = new XMLHttpRequest()
+      xhr.open('get', $constant.jitang)
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4) {
+          const jitang = xhr.responseText
+          if (!$common.isEmpty(jitang)) {
+            data.msg = jitang.substring(1, jitang.length - 1)
+            doSend()
+          }
+        }
+      }
+      xhr.send()
+    }
+
+    function sendShehui () {
+      const xhr = new XMLHttpRequest()
+      xhr.open('get', $constant.shehui)
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4) {
+          const shehui = xhr.responseText
+          if (!$common.isEmpty(shehui)) {
+            data.msg = shehui.substring(1, shehui.length - 1)
+            doSend()
+          }
+        }
+      }
+      xhr.send()
+    }
+
+    function send (e) {
+      if (e && (e.ctrlKey || e.shiftKey) && e.keyCode === 13) {
+        e.returnValue = false
+        data.msg = data.msg + '\n'
+      } else if (e && e.keyCode === 13) {
+        e.returnValue = false
+        doSend()
+      }
+    }
+
+    async function doSend () {
+      console.log('[doSend] 开始执行，当前消息:', data.msg) // 👈 记录入口
+      console.log('当前对话用户id：', props.currentChatFriendId)
+      console.log(
+        '[DEBUG] currentChatFriendId 类型检查:', typeof props.currentChatFriendId, // 应为 "string"
+        '值:', props.currentChatFriendId,
+        '构造函数:', props.currentChatFriendId?.constructor?.name // 应为 "String"
+      )
+      const isAIChat = props.currentChatFriendId === 1
+      console.log('[debug]:', isAIChat)
+      console.debug('[doSend] 是否是AI对话:', isAIChat) // 👈 调试标记
+
+      const sendMessage = (message) => {
+        console.info('[sendMessage] 准备发送消息:', message) // 👈 消息发送前记录
+        return new Promise(resolve => {
+          context.emit('sendMsg', JSON.stringify(message), val => {
+            console.log(`[sendMessage] 发送结果: ${val}`) // 👈 发送结果反馈
+            resolve(val)
+          })
+        })
+      }
+
+      if ($common.isEmpty(data.msg)) {
+        console.warn('[doSend] 消息内容为空，终止发送') // 👈 空内容警告
+        return
+      }
+
+      if (isAIChat) {
+        console.groupCollapsed('[doSend] 进入AI对话流程') // 👈 折叠日志组
+        try {
+          const userMessage = {
+            messageType: 1, // 新增AI对话类型
+            content: data.msg,
+            fromId: store.state.currentUser.id,
+            toId: '1',
+            avatar: store.state.currentUser.avatar
+          }
+          console.log('[debug] userMessage的类型为：', typeof userMessage.content)
+          console.log('[doSend] 构造用户消息:', userMessage)
+
+          if (await sendMessage(userMessage)) {
+            console.log('[doSend] 用户消息发送成功，清空输入')
+            data.msg = ''
+
+            console.time('[callLLM] AI响应耗时')// 👈 计时开始
+            const aiResponse = await callLLM(userMessage.content)
+            console.timeEnd('[callLLM] AI响应耗时') // 👈 计时结束
+
+            console.log('[doSend] 收到AI响应:', aiResponse?.slice(0, 50) + '...') // 截取部分内容
+
+            const aiMessage = {
+              messageType: 1,
+              content: aiResponse,
+              fromId: '1',
+              toId: store.state.currentUser.id,
+              avatar: '/ai-avatar.png',
+              timestamp: new Date().getTime()
+            }
+            await sendMessage(aiMessage)
+            console.log('[doSend] AI回复已发送')
+          }
+        } catch (error) {
+          console.error('[doSend] AI对话流程异常:', error) // 👈 错误捕获
+        } finally {
+          console.groupEnd() // 👈 结束日志组
+        }
+      } else if (!$common.isEmpty(props.currentChatFriendId)) {
+        const message = {
+          messageType: 1,
+          content: data.msg,
+          fromId: store.state.currentUser.id,
+          toId: props.currentChatFriendId,
+          avatar: store.state.currentUser.avatar
+        }
+        let success = false
+        context.emit('sendMsg', JSON.stringify(message), val => {
+          success = val
+        })
+        if (success) {
+          data.msg = ''
+        }
+      } else if (!$common.isEmpty(props.currentChatGroupId)) {
+        const message = {
+          messageType: 2,
+          content: data.msg,
+          fromId: store.state.currentUser.id,
+          groupId: props.currentChatGroupId,
+          avatar: store.state.currentUser.avatar,
+          username: store.state.currentUser.username
+        }
+        let success = false
+        context.emit('sendMsg', JSON.stringify(message), val => {
+          success = val
+        })
+        if (success) {
+          data.msg = ''
+        }
+      }
+    }
+
+    async function callLLM (userContent) {
+      try {
+        const completion = await openai.chat.completions.create({
+          model: 'qwen-plus', // 此处以qwen-plus为例，可按需更换模型名称。模型列表：https://help.aliyun.com/zh/model-studio/getting-started/models
+          messages: [
+            { role: 'system', content: 'You are a helpful assistant.' },
+            { role: 'user', content: userContent }
+          ],
+          stream: true
+        })
+        let fullResponse = ' '
+        for await (const chunk of completion) {
+          const content = chunk.choices[0]?.delta?.content || ''
+          fullResponse += content
+          console.log(JSON.stringify(chunk))
+        }
+        return fullResponse
+      } catch (error) {
+        console.error('ai调用失败：', error)
+        return '服务暂时不可用'
+      }
+    }
+
+    return {
+      ...toRefs(data),
+      openFriendCircle,
+      addEmoji,
+      addPicture,
+      sendPicture,
+      sendImage,
+      sendPoetry,
+      send,
+      doSend
+    }
   }
+}
 </script>
 
 <style scoped>
@@ -708,7 +801,6 @@
     flex-flow: wrap;
     gap: 10px;
   }
-
 
   @media screen and (max-width: 400px) {
     .msg-one {

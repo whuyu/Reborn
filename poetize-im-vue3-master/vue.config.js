@@ -20,5 +20,6 @@ module.exports = {
         deleteOriginalAssets: false
       })
     ]
-  }
+  },
+  transpileDependencies: ['openai']
 }

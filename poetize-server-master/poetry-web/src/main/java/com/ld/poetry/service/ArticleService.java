@@ -20,17 +20,17 @@ import java.util.Map;
  */
 public interface ArticleService extends IService<Article> {
 
-    PoetryResult saveArticle(ArticleVO articleVO);
+    PoetryResult<Page<Article>> saveArticle(ArticleVO articleVO);
 
-    PoetryResult deleteArticle(Integer id);
+    PoetryResult<Page<Article>> deleteArticle(Integer id);
 
-    PoetryResult updateArticle(ArticleVO articleVO);
+    PoetryResult<Page<Article>> updateArticle(ArticleVO articleVO);
 
-    PoetryResult<Page> listArticle(BaseRequestVO baseRequestVO);
+    PoetryResult<Page<Article>> listArticle(BaseRequestVO<Article> baseRequestVO);
 
     PoetryResult<ArticleVO> getArticleById(Integer id, String password);
 
-    PoetryResult<Page> listAdminArticle(BaseRequestVO baseRequestVO, Boolean isBoss);
+    PoetryResult<Page<Article>> listAdminArticle(BaseRequestVO<Article> baseRequestVO, Boolean isBoss);
 
     PoetryResult<ArticleVO> getArticleByIdForUser(Integer id);
 

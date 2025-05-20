@@ -32,7 +32,7 @@ public class AdminArticleController {
      */
     @PostMapping("/article/user/list")
     @LoginCheck(1)
-    public PoetryResult<Page> listUserArticle(@RequestBody BaseRequestVO baseRequestVO) {
+    public PoetryResult<Page<Article>> listUserArticle(@RequestBody BaseRequestVO<Article> baseRequestVO) {
         return articleService.listAdminArticle(baseRequestVO, false);
     }
 
