@@ -1037,38 +1037,7 @@ export default {
           })
       }
     }
-    function getGroupMessages (groupId, current = 1, size = 100) {
-      if (!data.groupMessages.hasOwnProperty(groupId)) {
-        $http.get($constant.baseURL + '/imChatUserGroupMessage/listGroupMessage', {
-          groupId: groupId,
-          current: current,
-          size: size
-        })
-          .then((res) => {
-            if (!$common.isEmpty(res.data) && !$common.isEmpty(res.data.records)) {
-              res.data.records.forEach(message => {
-                message.content = parseMessage(message.content)
-              })
-              data.groupMessages[groupId] = res.data.records
-            } else {
-              data.groupMessages[groupId] = []
-            }
-            nextTick(() => {
-              const msgContainer = document.getElementsByClassName('msg-container')
-              if (msgContainer && msgContainer.length > 0) {
-                msgContainer[0].scrollTop = msgContainer[0].scrollHeight
-              }
-              imgShow()
-            })
-          })
-          .catch((error) => {
-            ElMessage({
-              message: error.message,
-              type: 'error'
-            })
-          })
-      }
-    }
+    
 
     function handleCallOffer (data) {
       const message = {

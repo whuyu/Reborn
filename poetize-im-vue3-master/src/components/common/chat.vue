@@ -470,10 +470,7 @@ import OpenAI from 'openai'
       }
     }
 
-    function addPicture (res) {
-      data.msg += '[' + store.state.currentUser.username + ',' + res + ']'
-      data.showPictureDialog = false
-    }
+    
     function addPicture (res) {
       data.msg += '[' + store.state.currentUser.username + ',' + res + ']'
       data.showPictureDialog = false
@@ -482,13 +479,8 @@ import OpenAI from 'openai'
     function openFriendCircle (userId, avatar, username) {
       context.emit('openFriendCircle', userId, avatar, username)
     }
-    function openFriendCircle (userId, avatar, username) {
-      context.emit('openFriendCircle', userId, avatar, username)
-    }
 
-    function addEmoji (key) {
-      data.msg += key
-    }
+   
     function addEmoji (key) {
       data.msg += key
     }
@@ -498,25 +490,8 @@ import OpenAI from 'openai'
       data.showPopoverImage = false
       doSend()
     }
-    function sendImage (url) {
-      data.msg += '[' + store.state.currentUser.username + ',' + url + ']'
-      data.showPopoverImage = false
-      doSend()
-    }
 
-    function sendPoetry (type) {
-      if (type === 1) {
-        sendGuShi()
-      } else if (type === 2) {
-        sendYiyan()
-      } else if (type === 3) {
-        sendDog()
-      } else if (type === 4) {
-        sendJitang()
-      } else if (type === 5) {
-        sendShehui()
-      }
-    }
+   
     function sendPoetry (type) {
       if (type === 1) {
         sendGuShi()
@@ -531,20 +506,7 @@ import OpenAI from 'openai'
       }
     }
 
-    function sendGuShi () {
-      const xhr = new XMLHttpRequest()
-      xhr.open('get', $constant.jinrishici)
-      xhr.onreadystatechange = function () {
-        if (xhr.readyState === 4) {
-          const guShi = JSON.parse(xhr.responseText).content
-          if (!$common.isEmpty(guShi)) {
-            data.msg = guShi
-            doSend()
-          }
-        }
-      }
-      xhr.send()
-    }
+   
     function sendGuShi () {
       const xhr = new XMLHttpRequest()
       xhr.open('get', $constant.jinrishici)
@@ -574,35 +536,8 @@ import OpenAI from 'openai'
       }
       xhr.send()
     }
-    function sendYiyan () {
-      const xhr = new XMLHttpRequest()
-      xhr.open('get', $constant.yiyan)
-      xhr.onreadystatechange = function () {
-        if (xhr.readyState === 4) {
-          const yiyan = xhr.responseText
-          if (!$common.isEmpty(yiyan)) {
-            data.msg = yiyan.substring(1, yiyan.length - 1)
-            doSend()
-          }
-        }
-      }
-      xhr.send()
-    }
 
-    function sendDog () {
-      const xhr = new XMLHttpRequest()
-      xhr.open('get', $constant.dog)
-      xhr.onreadystatechange = function () {
-        if (xhr.readyState === 4) {
-          const dog = xhr.responseText
-          if (!$common.isEmpty(dog)) {
-            data.msg = dog.substring(1, dog.length - 1)
-            doSend()
-          }
-        }
-      }
-      xhr.send()
-    }
+    
     function sendDog () {
       const xhr = new XMLHttpRequest()
       xhr.open('get', $constant.dog)
@@ -618,20 +553,7 @@ import OpenAI from 'openai'
       xhr.send()
     }
 
-    function sendJitang () {
-      const xhr = new XMLHttpRequest()
-      xhr.open('get', $constant.jitang)
-      xhr.onreadystatechange = function () {
-        if (xhr.readyState === 4) {
-          const jitang = xhr.responseText
-          if (!$common.isEmpty(jitang)) {
-            data.msg = jitang.substring(1, jitang.length - 1)
-            doSend()
-          }
-        }
-      }
-      xhr.send()
-    }
+   
     function sendJitang () {
       const xhr = new XMLHttpRequest()
       xhr.open('get', $constant.jitang)
@@ -647,20 +569,7 @@ import OpenAI from 'openai'
       xhr.send()
     }
 
-    function sendShehui () {
-      const xhr = new XMLHttpRequest()
-      xhr.open('get', $constant.shehui)
-      xhr.onreadystatechange = function () {
-        if (xhr.readyState === 4) {
-          const shehui = xhr.responseText
-          if (!$common.isEmpty(shehui)) {
-            data.msg = shehui.substring(1, shehui.length - 1)
-            doSend()
-          }
-        }
-      }
-      xhr.send()
-    }
+   
     function sendShehui () {
       const xhr = new XMLHttpRequest()
       xhr.open('get', $constant.shehui)
