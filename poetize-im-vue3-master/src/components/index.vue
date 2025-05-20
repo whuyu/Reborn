@@ -576,6 +576,7 @@
       :is-caller="isCaller"
       :target-id="currentCallTargetId"
       v-model:show-call-modal="showVideoCall"
+      :is-accepted="isAccepted"
       @reject-call="handleCallReject"
       @cancel-call="handleCallCancel"
       @send-msg="sendMsg"
@@ -661,6 +662,7 @@ export default {
     let im
 
     const showVideoCall = ref(false)
+    const isAccepted=ref(false)
     const callType = ref('')
     const isCaller = ref(false)
     const currentCallTargetId = ref('')
@@ -740,10 +742,10 @@ export default {
               }
               break
             case 5: // 接受通话
-
-
               console.log('[音视频通话] 对方接受通话')
+              
               try {
+                isAccepted.value=true
                 const answer = JSON.parse(message.content)
                 if (answer.type === 'answer') {
                   const peerConnection = window.currentPeerConnection
@@ -766,10 +768,12 @@ export default {
             case 6: // 拒绝通话
               console.log('[音视频通话] 对方拒绝通话')
               showVideoCall.value = false
+              isAccepted.value=false
               break
             case 7: // 取消通话
               console.log('[音视频通话] 对方取消通话')
               showVideoCall.value = false
+              isAccepted.value=false
               break
             case 8: // ICE 候选
               try {
@@ -1081,10 +1085,12 @@ export default {
       // console.log('[音视频通话] 发送拒绝通话消息')
       // im.sendMsg(JSON.stringify(message))
       showVideoCall.value = false
+      isAccepted.value=false
     }
 
     function handleCallCancel (targetId) {
       showVideoCall.value = false
+      isAccepted.value=false
     }
 
     // 处理接收到的 ICE 候选 2025-05-07
@@ -1100,8 +1106,8 @@ export default {
     }
 
     function handleStartCall (params) {
-      // showVideoCall.value = true
-      showVideoCall.value = !showVideoCall.value
+       showVideoCall.value = true
+      //showVideoCall.value = !showVideoCall.value
       callType.value = params.type
       isCaller.value = params.isCaller
       currentCallTargetId.value = params.targetId
@@ -1135,6 +1141,18 @@ export default {
       if (remoteVideo.value && remoteVideo.value.srcObject) {
         remoteVideo.value.srcObject.getTracks().forEach(track => track.stop())
       }
+      // 清理全局变量
+  window.pendingOffer = null
+  window.pendingIceCandidates = null
+  // 关闭所有打开的媒体流
+  if (window.localStream) {
+    window.localStream.getTracks().forEach(track => track.stop())
+    window.localStream = null
+  }
+  if (window.remoteStream) {
+    window.remoteStream.getTracks().forEach(track => track.stop())
+    window.remoteStream = null
+  }
     })
 
     // 处理接收到的 answer  2025-05-07
@@ -1180,6 +1198,7 @@ export default {
       exitGroup,
       dissolveGroup,
       showVideoCall,
+      isAccepted,
       callType,
       isCaller,
       currentCallTargetId,

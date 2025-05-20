@@ -35,7 +35,7 @@
         sayShow: false,
         sayContent: [
           {
-            "talk": ["Hi, there👋", "这是一个 Vue2 Vue3 与 SpringBoot 结合的产物~"],
+            "talk": ["Hi, there👋", "这是一个 Vue3 与 SpringBoot 结合的产物~"],
             "reply": ["然后呢？ 😃", "少废话！ 🙄"]
           }, {
             "talk": ["😘",

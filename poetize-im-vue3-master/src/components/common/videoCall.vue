@@ -90,6 +90,10 @@ export default {
     showCallModal: {
       type: Boolean,
       default: false
+    },
+    isAccepted: {
+      type: Boolean,
+      default: false
     }
   },
 
@@ -101,21 +105,31 @@ export default {
     const remoteAudio = ref(null)
     const store = useStore()
     const showCallModal = toRef(props, 'showCallModal')
-
+    const isAccepted = toRef(props, 'isAccepted')
 
     console.log(props.showCallModal)
 
     if (props.showCallModal && props.isCaller) {
-      //console.log('props.showCallModal 变化1111111111111111')
+      // console.log('props.showCallModal 变化1111111111111111')
       callStatus.value = '正在呼叫...'
     }
-
 
     watch(
       showCallModal,
       (newVal) => {
         console.log('本地 showCallModal 变化', newVal)
         emit('update:showCallModal', newVal)
+      }
+    )
+    watch(
+      isAccepted,
+      (newVal) => {
+        if (props.isAccepted && props.isCaller) {
+          console.log('11111111111111111111111111111111111111111111111111111')
+          callStatus.value = '通话中...'
+        }
+        console.log('本地 isAccpeted 变化', newVal)
+        emit('update:isAccepted', newVal)
       }
     )
 
@@ -259,6 +273,7 @@ export default {
     // 拒绝通话
     const rejectCall = () => {
       console.log('[音视频通话] 拒绝通话')
+
       // 发送拒绝通话消息
       const message = {
         messageType: 6, // 拒绝通话
@@ -276,6 +291,7 @@ export default {
     // 取消通话
     const cancelCall = () => {
       console.log('[音视频通话] 取消通话')
+
       // 发送取消通话消息
       const message = {
         messageType: 7, // 取消通话
@@ -307,6 +323,16 @@ export default {
       if (window.currentPeerConnection) {
         window.currentPeerConnection.close()
         window.currentPeerConnection = null
+      }
+
+      // 关闭本地媒体流
+      if (window.localStream) {
+        window.localStream.getTracks().forEach(track => track.stop())
+        window.localStream = null
+      }
+      // 关闭远程媒体流
+      if (remoteVideo.value?.srcObject) {
+        remoteVideo.value.srcObject.getTracks().forEach(track => track.stop())
       }
     })
 
@@ -382,7 +408,6 @@ export default {
   max-width: 90%; /* 防止长文本溢出 */
   word-break: break-word; /* 长文本换行 */
 }
-
 
 .remote-video {
   width: 100%;

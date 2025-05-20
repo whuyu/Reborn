@@ -24,7 +24,7 @@ export default {
   friendWebName: "POETIZE",
   friendUrl: location.protocol + "//" + location.hostname + (location.port ? ':' + location.port : ''),
   friendAvatar: "https://s1.ax1x.com/2022/11/10/z9E7X4.jpg",
-  friendIntroduction: "这是一个 Vue2 Vue3 与 SpringBoot 结合的产物～",
+  friendIntroduction: "这是一个 Vue3 与 SpringBoot 结合的产物～",
   friendCover: "https://s1.ax1x.com/2022/11/10/z9VlHs.png",
 
   before_color_list: ["black", "rgb(131, 123, 199)", "#ee7752", "#e73c7e", "#23a6d5", "#23d5ab"],
