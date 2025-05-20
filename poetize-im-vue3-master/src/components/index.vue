@@ -883,6 +883,23 @@ export default {
     }
 
     function sendMsg (msg, callback) {
+      try {
+        console.log('[WebSocket] 准备发送消息:', msg)
+        if (!im || !im.tio || !im.tio.ws) {
+          console.error('[WebSocket] 发送失败: WebSocket 未连接')
+          if (callback) callback(false)
+          return false
+        }
+
+        const success = im.sendMsg(msg)
+        console.log('[WebSocket] 消息发送结果:', success)
+        if (callback) callback(success)
+        return success
+      } catch (error) {
+        console.error('[WebSocket] 发送消息时发生错误:', error)
+        if (callback) callback(false)
+        return false
+      }
       const success = im.sendMsg(msg)
       callback(success)
     }
