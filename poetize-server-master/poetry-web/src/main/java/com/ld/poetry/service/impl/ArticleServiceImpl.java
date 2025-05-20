@@ -67,7 +67,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
     private String subscribeFormat;
 
     @Override
-    public PoetryResult saveArticle(ArticleVO articleVO) {
+    public PoetryResult<Page<Article>> saveArticle(ArticleVO articleVO) {
         if (articleVO.getViewStatus() != null && !articleVO.getViewStatus() && !StringUtils.hasText(articleVO.getPassword())) {
             return PoetryResult.fail("请设置文章密码！");
         }
@@ -129,7 +129,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
     }
 
     @Override
-    public PoetryResult deleteArticle(Integer id) {
+    public PoetryResult<Page<Article>> deleteArticle(Integer id) {
         Integer userId = PoetryUtil.getUserId();
         lambdaUpdate().eq(Article::getId, id)
                 .eq(Article::getUserId, userId)
@@ -139,7 +139,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
     }
 
     @Override
-    public PoetryResult updateArticle(ArticleVO articleVO) {
+    public PoetryResult<Page<Article>> updateArticle(ArticleVO articleVO) {
         if (articleVO.getViewStatus() != null && !articleVO.getViewStatus() && !StringUtils.hasText(articleVO.getPassword())) {
             return PoetryResult.fail("请设置文章密码！");
         }
@@ -178,7 +178,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
     }
 
     @Override
-    public PoetryResult<Page> listArticle(BaseRequestVO baseRequestVO) {
+    public PoetryResult<Page<Article>> listArticle(BaseRequestVO<Article> baseRequestVO) {
         List<Integer> ids = null;
         List<List<Integer>> idList = null;
         if (StringUtils.hasText(baseRequestVO.getArticleSearch())) {
@@ -233,7 +233,12 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
             collect.addAll(articles);
             collect.addAll(titles);
             collect.addAll(contents);
-            baseRequestVO.setRecords(collect);
+            Page<ArticleVO> resultPage = new Page<>(
+                    baseRequestVO.getCurrent(),
+                    baseRequestVO.getSize(),
+                    baseRequestVO.getTotal()
+            );
+            resultPage.setRecords(collect);
         }
         return PoetryResult.success(baseRequestVO);
     }
@@ -261,7 +266,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
     }
 
     @Override
-    public PoetryResult<Page> listAdminArticle(BaseRequestVO baseRequestVO, Boolean isBoss) {
+    public PoetryResult<Page<Article>> listAdminArticle(BaseRequestVO<Article> baseRequestVO, Boolean isBoss) {
         LambdaQueryChainWrapper<Article> lambdaQuery = lambdaQuery();
         lambdaQuery.select(Article.class, a -> !a.getColumn().equals("article_content"));
         if (!isBoss) {
@@ -290,12 +295,18 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
 
         List<Article> records = baseRequestVO.getRecords();
         if (!CollectionUtils.isEmpty(records)) {
-            List<ArticleVO> collect = records.stream().map(article -> {
-                article.setPassword(null);
-                ArticleVO articleVO = buildArticleVO(article, true);
-                return articleVO;
-            }).collect(Collectors.toList());
-            baseRequestVO.setRecords(collect);
+            List<ArticleVO> articleVOs = baseRequestVO.getRecords().stream().
+                    map(article -> {
+                        article.setPassword(null); // 清除敏感字段
+                        return buildArticleVO(article, true); // 转换为VO对象
+                    })
+                    .collect(Collectors.toList());
+            Page<ArticleVO> resultPage = new Page<>(
+                    baseRequestVO.getCurrent(), // 保留分页信息
+                    baseRequestVO.getSize(),
+                    baseRequestVO.getTotal()
+            );
+            resultPage.setRecords(articleVOs);
         }
         return PoetryResult.success(baseRequestVO);
     }

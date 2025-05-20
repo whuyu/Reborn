@@ -883,23 +883,8 @@ export default {
     }
 
     function sendMsg (msg, callback) {
-      try {
-        console.log('[WebSocket] 准备发送消息:', msg)
-        if (!im || !im.tio || !im.tio.ws) {
-          console.error('[WebSocket] 发送失败: WebSocket 未连接')
-          if (callback) callback(false)
-          return false
-        }
-
-        const success = im.sendMsg(msg)
-        console.log('[WebSocket] 消息发送结果:', success)
-        if (callback) callback(success)
-        return success
-      } catch (error) {
-        console.error('[WebSocket] 发送消息时发生错误:', error)
-        if (callback) callback(false)
-        return false
-      }
+      const success = im.sendMsg(msg)
+      callback(success)
     }
 
     function isActive (e, className, type, subType, current, imType) {
@@ -933,7 +918,6 @@ export default {
             data.imMessageBadge[current] = 0
           }
         }
-
         nextTick(() => {
           const msgContainer = document.getElementsByClassName('msg-container')
           if (msgContainer && msgContainer.length > 0) {
@@ -1021,6 +1005,38 @@ export default {
       }
     }
 
+    function getGroupMessages (groupId, current = 1, size = 100) {
+      if (!data.groupMessages.hasOwnProperty(groupId)) {
+        $http.get($constant.baseURL + '/imChatUserGroupMessage/listGroupMessage', {
+          groupId: groupId,
+          current: current,
+          size: size
+        })
+          .then((res) => {
+            if (!$common.isEmpty(res.data) && !$common.isEmpty(res.data.records)) {
+              res.data.records.forEach(message => {
+                message.content = parseMessage(message.content)
+              })
+              data.groupMessages[groupId] = res.data.records
+            } else {
+              data.groupMessages[groupId] = []
+            }
+            nextTick(() => {
+              const msgContainer = document.getElementsByClassName('msg-container')
+              if (msgContainer && msgContainer.length > 0) {
+                msgContainer[0].scrollTop = msgContainer[0].scrollHeight
+              }
+              imgShow()
+            })
+          })
+          .catch((error) => {
+            ElMessage({
+              message: error.message,
+              type: 'error'
+            })
+          })
+      }
+    }
     function getGroupMessages (groupId, current = 1, size = 100) {
       if (!data.groupMessages.hasOwnProperty(groupId)) {
         $http.get($constant.baseURL + '/imChatUserGroupMessage/listGroupMessage', {

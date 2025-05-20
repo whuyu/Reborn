@@ -35,22 +35,22 @@ public class PoetryResult<T> implements Serializable {
     }
 
     public static <T> PoetryResult<T> fail(String message) {
-        return new PoetryResult(message);
+        return new PoetryResult<>(message);
     }
 
     public static <T> PoetryResult<T> fail(CodeMsg codeMsg) {
-        return new PoetryResult(codeMsg.getCode(), codeMsg.getMsg());
+        return new PoetryResult<>(codeMsg.getCode(), codeMsg.getMsg());
     }
 
     public static <T> PoetryResult<T> fail(Integer code, String message) {
-        return new PoetryResult(code, message);
+        return new PoetryResult<>(code, message);
     }
 
     public static <T> PoetryResult<T> success(T data) {
-        return new PoetryResult(data);
+        return new PoetryResult<>(data);
     }
 
     public static <T> PoetryResult<T> success() {
-        return new PoetryResult();
+        return new PoetryResult<>();
     }
 }

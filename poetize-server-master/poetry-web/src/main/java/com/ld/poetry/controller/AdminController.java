@@ -52,7 +52,7 @@ public class AdminController {
      */
     @PostMapping("/treeHole/boss/list")
     @LoginCheck(0)
-    public PoetryResult<Page> listBossTreeHole(@RequestBody BaseRequestVO baseRequestVO) {
+    public PoetryResult<Page<TreeHole>> listBossTreeHole(@RequestBody BaseRequestVO<TreeHole> baseRequestVO) {
         LambdaQueryChainWrapper<TreeHole> wrapper = new LambdaQueryChainWrapper<>(treeHoleMapper);
         wrapper.orderByDesc(TreeHole::getCreateTime).page(baseRequestVO);
         return PoetryResult.success(baseRequestVO);

@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.Data;
 
 @Data
-public class BaseRequestVO extends Page {
+public class BaseRequestVO<T> extends Page<T> {
 
     private String order;
 
