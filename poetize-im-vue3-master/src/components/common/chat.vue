@@ -433,6 +433,14 @@ import OpenAI from 'openai'
       const $constant = globalProperties.$constant;
       const store = useStore();
       const dialog = useDialog();
+      console.log('[Debug] API Key:', process.env.VUE_APP_DASHSCOPE_API_KEY)
+    const openai = new OpenAI(
+      {
+        apiKey: process.env.VUE_APP_DASHSCOPE_API_KEY,
+        baseURL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+        dangerouslyAllowBrowser: true
+      }
+    )
 
       let data = reactive({
         //发送消息
