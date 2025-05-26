@@ -145,15 +145,28 @@
           </div>
           <!-- 作者信息 -->
           <blockquote>
-            <div>
-              作者：{{article.username}}
-            </div>
-            <div>
-              <span>版权&许可请详阅</span>
-              <span style="color: #38f;cursor: pointer"
-                    @click="copyrightDialogVisible = true">
-                版权声明
-              </span>
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <div>
+                <div>作者：{{article.username}}</div>
+                <div>
+                  <span>版权&许可请详阅</span>
+                  <span style="color: #38f;cursor: pointer"
+                        @click="copyrightDialogVisible = true">
+                   版权声明
+                  </span>
+                </div>
+              </div>
+
+              <!-- 关注按钮 -->
+              <el-button
+                v-if="!$common.isEmpty($store.state.currentUser) && $store.state.currentUser.id !== article.userId"
+                :type="isFollowing ? 'info' : 'primary'"
+                size="small"
+                @click="handleFollow"
+                :loading="followLoading"
+                :disabled="isFollowing || isFriend">
+                {{ isFriend ? '已是好友' : isFollowing ? '已关注' : '关注' }}
+              </el-button>
             </div>
           </blockquote>
           <!-- 订阅 -->
@@ -276,6 +289,8 @@
 </template>
 
 <script>
+  //import {followAuthor} from "../utils/request";
+
   const myFooter = () => import( "./common/myFooter");
   const comment = () => import( "./comment/comment");
   const process = () => import( "./common/process");
@@ -307,7 +322,10 @@
         showPasswordDialog: false,
         password: "",
         tips: "",
-        scrollTop: 0
+        scrollTop: 0,
+        isFollowing: false, // 是否已关注
+        isFriend: false,    // 是否已是好友
+        followLoading: false // 加载状态
       };
     },
     created() {
@@ -324,6 +342,9 @@
           });
         }
       }
+      this.$nextTick(() => {
+        this.checkFollowStatus();
+      });
     },
     mounted() {
       window.addEventListener("scroll", this.onScrollPage);
@@ -622,6 +643,42 @@
             .children("table")
             .wrap("<div class='table-wrapper'></div>");
         }
+      },
+      // 检查关注状态
+      async checkFollowStatus() {
+        if (!this.article.userId || !this.$store.state.currentUser?.id) return;
+
+        try {
+          const res = await checkFollowStatus(this.article.userId);
+          this.isFollowing = res.isFollowing;
+          this.isFriend = res.isFriend;
+        } catch (error) {
+          console.error('获取关注状态失败', error);
+        }
+      },
+      // 处理关注
+      async handleFollow() {
+        if (!this.$store.state.currentUser) {
+          this.$message.error("请先登录！");
+          return;
+        }
+
+        if (this.$store.state.currentUser.id === this.article.userId) return;
+
+        this.followLoading = true;
+        try {
+          //const res = await followAuthor(this.article.userId, this.article.id);
+          const res = {success: true};
+          if (res.success) {
+            this.isFollowing = true;
+            this.$http.get(this.$constant.baseURL + "/imChatUserFriend/addFriend", {friendId: this.article.userId})
+            this.$message.success('关注成功，好友请求已发送！');
+          }
+        } catch (error) {
+          this.$message.error(error.message || '操作失败');
+        } finally {
+          this.followLoading = false;
+        }
       }
     }
   }
@@ -697,6 +754,11 @@
     margin: 0 0 40px 0;
     user-select: none;
     color: var(--black);
+    padding: 15px 1rem; /* 增加一些内边距 */
+  }
+  blockquote >>> .el-button {
+    margin-left: 10px;
+    flex-shrink: 0;
   }
 
   .article-sort {
