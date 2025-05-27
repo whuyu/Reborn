@@ -10,8 +10,6 @@ import org.apache.ibatis.annotations.Update;
  * 文章表 Mapper 接口
  * </p>
  *
- * @author sara
- * @since 2021-08-13
  */
 public interface ArticleMapper extends BaseMapper<Article> {
 

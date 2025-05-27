@@ -12,8 +12,6 @@ import java.util.Map;
  * 历史信息 Mapper 接口
  * </p>
  *
- * @author sara
- * @since 2023-07-24
  */
 public interface HistoryInfoMapper extends BaseMapper<HistoryInfo> {
 
