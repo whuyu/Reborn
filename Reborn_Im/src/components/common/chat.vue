@@ -210,10 +210,6 @@ import OpenAI from 'openai'
     components: {
       uploadPicture,
       emoji
-export default {
-  components: {
-    uploadPicture,
-    emoji
   },
   props: {
     currentChatFriendId: {
@@ -434,7 +430,6 @@ export default {
         })
       }
 
-    function doSend () {
       if ($common.isEmpty(data.msg)) {
         console.warn('[doSend] 消息内容为空，终止发送') // 👈 空内容警告
         return
@@ -480,7 +475,6 @@ export default {
           console.groupEnd() // 👈 结束日志组
         }
       } else if (!$common.isEmpty(props.currentChatFriendId)) {
-      if (!$common.isEmpty(props.currentChatFriendId)) {
         const message = {
           messageType: 1,
           content: data.msg,
@@ -536,7 +530,7 @@ export default {
         return '服务暂时不可用'
       }
     }
-      
+
 
     // 开始视频通话
     function startVideoCall () {
