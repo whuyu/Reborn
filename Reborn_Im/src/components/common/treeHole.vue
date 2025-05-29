@@ -11,6 +11,7 @@
                     lazy
                     class="avatar-img"
                     :size="36"
+                    style="border-radius: 50%;"
                     :src="avatar"/>
           <div class="tree-hole-box"
                :style="{background: $constant.tree_hole_color[index % $constant.tree_hole_color.length]}">

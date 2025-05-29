@@ -56,7 +56,7 @@
 
     --azure: #ECF7FE;
     --blue: rgb(3, 169, 244);
-    --messageColor: #cfe7ff;
+    --messageColor: #0080ff;
 
     --imBG: #edeff3;
 
@@ -69,5 +69,5 @@
     --black: black;
     --lightYellow: #F4E1C0;
 
-    --globalFont: reborn-font;
+    --globalFont: poetize-font;
 }

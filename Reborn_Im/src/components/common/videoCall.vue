@@ -21,6 +21,7 @@
           <n-avatar
             :src="targetAvatar"
             :size="100"
+            style="border-radius: 50%;"
             object-fit="cover"
           />
         </div>
@@ -113,6 +114,7 @@ export default {
       // console.log('props.showCallModal 变化1111111111111111')
       callStatus.value = '正在呼叫...'
     }
+
 
     watch(
       showCallModal,
@@ -273,7 +275,6 @@ export default {
     // 拒绝通话
     const rejectCall = () => {
       console.log('[音视频通话] 拒绝通话')
-
       // 发送拒绝通话消息
       const message = {
         messageType: 6, // 拒绝通话
@@ -291,7 +292,6 @@ export default {
     // 取消通话
     const cancelCall = () => {
       console.log('[音视频通话] 取消通话')
-
       // 发送取消通话消息
       const message = {
         messageType: 7, // 取消通话
@@ -408,6 +408,7 @@ export default {
   max-width: 90%; /* 防止长文本溢出 */
   word-break: break-word; /* 长文本换行 */
 }
+
 
 .remote-video {
   width: 100%;
