@@ -900,8 +900,6 @@ export default {
         if (callback) callback(false)
         return false
       }
-      const success = im.sendMsg(msg)
-      callback(success)
     }
 
     function isActive (e, className, type, subType, current, imType) {
