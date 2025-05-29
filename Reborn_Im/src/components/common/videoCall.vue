@@ -267,6 +267,7 @@ export default {
 
         callStatus.value = '通话中...'
       } catch (error) {
+        isButton.value = true
         console.error('[音视频通话] 接受通话失败:', error)
         ElMessage.error('无法访问摄像头或麦克风')
       }

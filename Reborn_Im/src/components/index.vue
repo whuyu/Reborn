@@ -590,7 +590,7 @@ export default {
     let im
 
     const showVideoCall = ref(false)
-    const isAccepted=ref(false)
+    const isAccepted = ref(false)
     const callType = ref('')
     const isCaller = ref(false)
     const currentCallTargetId = ref('')
