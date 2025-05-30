@@ -82,20 +82,20 @@ function loadWidget(config) {
   // 插入html
   localStorage.removeItem("waifu-display");
   localStorage.removeItem("waifu-text");
-  document.body.insertAdjacentHTML("beforeend", `<div id="waifu">
-			<div id="waifu-tips"></div>
-			<canvas id="live2d" width="800" height="800"></canvas>
-      <!-- 工具 -->
-			<div id="waifu-tool">
-				<span class="fa fa-lg fa-comment"></span>
-				<span class="fa fa-lg fa-street-view"></span>
-				<span class="fa fa-lg fa-mouse-pointer"></span>
-				<span class="fa fa-lg fa-times"></span>
-			</div>
-		</div>`);
-  setTimeout(() => {
-    document.getElementById("waifu").style.bottom = 0;
-  }, 0);
+  // document.body.insertAdjacentHTML("beforeend", `<div id="waifu">
+	// 		<div id="waifu-tips"></div>
+	// 		<canvas id="live2d" width="800" height="800"></canvas>
+  //     <!-- 工具 -->
+	// 		<div id="waifu-tool">
+	// 			<span class="fa fa-lg fa-comment"></span>
+	// 			<span class="fa fa-lg fa-street-view"></span>
+	// 			<span class="fa fa-lg fa-mouse-pointer"></span>
+	// 			<span class="fa fa-lg fa-times"></span>
+	// 		</div>
+	// 	</div>`);
+  // setTimeout(() => {
+  //   document.getElementById("waifu").style.bottom = 0;
+  // }, 0);
 
   // 检测用户活动状态，并在空闲时显示消息
   let userAction = false,
