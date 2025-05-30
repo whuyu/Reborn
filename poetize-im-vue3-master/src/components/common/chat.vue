@@ -664,9 +664,9 @@ export default {
     async function callLLM (userContent) {
       try {
         const completion = await openai.chat.completions.create({
-          model: 'qwen-plus', // 此处以qwen-plus为例，可按需更换模型名称。模型列表：https://help.aliyun.com/zh/model-studio/getting-started/models
+          model: 'qwen-max', // 此处以qwen-plus为例，可按需更换模型名称。模型列表：https://help.aliyun.com/zh/model-studio/getting-started/models
           messages: [
-            { role: 'system', content: 'You are a helpful assistant.' },
+            { role: 'system', content: '你是一个耐心体贴，富有专业素养的心理医生的身份，无论用户对你说什么，你都要用温柔和善的语言回复。此外，请用中文回答所有问题' },
             { role: 'user', content: userContent }
           ],
           stream: true
