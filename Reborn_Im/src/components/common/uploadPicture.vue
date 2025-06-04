@@ -43,130 +43,131 @@
 </template>
 
 <script>
-  import {ElMessage} from "element-plus";
-  import upload from '../../utils/ajaxUpload';
+import { ElMessage } from 'element-plus'
+import upload from '../../utils/ajaxUpload'
 
-  export default {
-    props: {
-      prefix: {
-        type: String,
-        default: ""
-      },
-      maxSize: {
-        type: Number,
-        default: 5
-      },
-      maxNumber: {
-        type: Number,
-        default: 5
+export default {
+  props: {
+    prefix: {
+      type: String,
+      default: ''
+    },
+    maxSize: {
+      type: Number,
+      default: 5
+    },
+    maxNumber: {
+      type: Number,
+      default: 5
+    }
+  },
+
+  data () {
+    return {
+      storeType: localStorage.getItem('defaultStoreType')
+    }
+  },
+
+  created () {
+  },
+
+  methods: {
+    submitUpload () {
+      this.$refs.upload.submit()
+    },
+
+    // 文件上传成功时的钩子
+    handleSuccess (response, file, fileList) {
+      let url
+      if (this.storeType === 'local') {
+        url = response.data
+      } else if (this.storeType === 'qiniu') {
+        url = this.$store.state.sysConfig['qiniu.downloadUrl'] + response.key
+        this.$common.saveResource(this, this.prefix, url, file.size, file.raw.type, file.name, 'qiniu')
       }
+      this.$emit('addPicture', url)
     },
 
-    data() {
-      return {
-        storeType: localStorage.getItem("defaultStoreType")
+    customUpload (options) {
+      let suffix = ''
+      if (options.file.name.lastIndexOf('.') !== -1) {
+        suffix = options.file.name.substring(options.file.name.lastIndexOf('.'))
       }
-    },
 
-    created() {
-    },
+      const key = this.prefix + '/' + this.$store.state.currentUser.username.replace(/[^a-zA-Z]/g, '') + this.$store.state.currentUser.id + new Date().getTime() + Math.floor(Math.random() * 1000) + suffix
 
-    methods: {
-      submitUpload() {
-        this.$refs.upload.submit();
-      },
+      const data = {}
+      data.key = key
+      options.data = data
 
-      // 文件上传成功时的钩子
-      handleSuccess(response, file, fileList) {
-        let url;
-        if (this.storeType === "local") {
-          url = response.data;
-        } else if (this.storeType === "qiniu") {
-          url = this.$store.state.sysConfig['qiniu.downloadUrl'] + response.key;
-          this.$common.saveResource(this, this.prefix, url, file.size, file.raw.type, file.name, "qiniu");
-        }
-        this.$emit("addPicture", url);
-      },
+      if (this.storeType === 'local') {
+        data.relativePath = key
+        data.type = this.prefix
+        data.storeType = this.storeType
+        data.originalName = options.file.name
+        data.file = options.file
+        data.projectType = 'vue3'
 
-      customUpload(options) {
-        let suffix = "";
-        if (options.file.name.lastIndexOf('.') !== -1) {
-          suffix = options.file.name.substring(options.file.name.lastIndexOf('.'));
-        }
+        return this.$http.upload(this.$constant.baseURL + '/resource/upload', data, options)
+      } else if (this.storeType === 'qiniu') {
+        const xhr = new XMLHttpRequest()
+        xhr.open('get', this.$constant.baseURL + '/qiniu/getUpToken?key=' + key, false)
+        xhr.setRequestHeader('Authorization', localStorage.getItem('userToken'))
 
-        let key = this.prefix + "/" + this.$store.state.currentUser.username.replace(/[^a-zA-Z]/g, '') + this.$store.state.currentUser.id + new Date().getTime() + Math.floor(Math.random() * 1000) + suffix;
-
-        let data = {};
-        data.key = key;
-        options.data = data;
-
-        if (this.storeType === "local") {
-          data.relativePath = key;
-          data.type = this.prefix;
-          data.storeType = this.storeType;
-          data.originalName = options.file.name;
-          data.file = options.file;
-
-          return this.$http.upload(this.$constant.baseURL + "/resource/upload", data, options);
-        } else if (this.storeType === "qiniu") {
-          const xhr = new XMLHttpRequest();
-          xhr.open('get', this.$constant.baseURL + "/qiniu/getUpToken?key=" + key, false);
-          xhr.setRequestHeader("Authorization", localStorage.getItem("userToken"));
-
-          try {
-            xhr.send();
-            const res = JSON.parse(xhr.responseText);
-            if (res !== null && res.hasOwnProperty("code") && res.code === 200) {
-              data.token = res.data;
-              return upload(options);
-            } else if (res !== null && res.hasOwnProperty("code") && res.code !== 200) {
-              return Promise.reject(res.message);
-            } else {
-              return Promise.reject("服务异常！");
-            }
-          } catch (e) {
-            return Promise.reject(e.message);
+        try {
+          xhr.send()
+          const res = JSON.parse(xhr.responseText)
+          if (res !== null && res.hasOwnProperty('code') && res.code === 200) {
+            data.token = res.data
+            return upload(options)
+          } else if (res !== null && res.hasOwnProperty('code') && res.code !== 200) {
+            return Promise.reject(res.message)
+          } else {
+            return Promise.reject('服务异常！')
           }
+        } catch (e) {
+          return Promise.reject(e.message)
         }
-      },
+      }
+    },
 
-      handleError(err, file, fileList) {
+    handleError (err, file, fileList) {
+      ElMessage({
+        message: err,
+        type: 'error'
+      })
+    },
+
+    // 文件列表移除文件时的钩子
+    handleRemove (file, fileList) {
+    },
+
+    // 上传文件之前的钩子，参数为上传的文件，若返回 false 或者返回 Promise 且被 reject，则停止上传
+    beforeUpload (file) {
+    },
+
+    // 添加文件、上传成功和上传失败时都会被调用
+    handleChange (file, fileList) {
+      let flag = false
+
+      if (file.size > this.maxSize * 1024 * 1024) {
         ElMessage({
-          message: err,
-          type: 'error'
-        });
-      },
+          message: '图片最大为' + this.maxSize + 'M！',
+          type: 'warning'
+        })
+        flag = true
+      }
 
-      // 文件列表移除文件时的钩子
-      handleRemove(file, fileList) {
-      },
+      if (fileList.length > this.maxNumber) {
+        flag = true
+      }
 
-      // 上传文件之前的钩子，参数为上传的文件，若返回 false 或者返回 Promise 且被 reject，则停止上传
-      beforeUpload(file) {
-      },
-
-      // 添加文件、上传成功和上传失败时都会被调用
-      handleChange(file, fileList) {
-        let flag = false;
-
-        if (file.size > this.maxSize * 1024 * 1024) {
-          ElMessage({
-            message: "图片最大为" + this.maxSize + "M！",
-            type: 'warning'
-          });
-          flag = true;
-        }
-
-        if (fileList.length > this.maxNumber) {
-          flag = true;
-        }
-
-        if (flag) {
-          fileList.splice(fileList.length - 1, 1);
-        }
+      if (flag) {
+        fileList.splice(fileList.length - 1, 1)
       }
     }
   }
+}
 </script>
 
 <style scoped>

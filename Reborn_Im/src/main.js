@@ -1,4 +1,4 @@
-import {createApp} from 'vue'
+import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
 import store from './store'
@@ -61,39 +61,39 @@ app.config.globalProperties.$constant = constant
 
 router.beforeEach((to, from, next) => {
   if (to.meta.requiresAuth) {
-    if (to.path === "/") {
-      if (typeof to.query.defaultStoreType !== "undefined") {
-        localStorage.setItem("defaultStoreType", to.query.defaultStoreType);
+    if (to.path === '/') {
+      if (typeof to.query.defaultStoreType !== 'undefined') {
+        localStorage.setItem('defaultStoreType', to.query.defaultStoreType)
       }
-      if (typeof to.query.userToken !== "undefined") {
-        let userToken = to.query.userToken;
-        const xhr = new XMLHttpRequest();
-        xhr.open('post', constant.baseURL + "/user/token", false);
-        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-        xhr.send("userToken=" + userToken);
-        let result = JSON.parse(xhr.responseText);
+      if (typeof to.query.userToken !== 'undefined') {
+        const userToken = to.query.userToken
+        const xhr = new XMLHttpRequest()
+        xhr.open('post', constant.baseURL + '/user/token', false)
+        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded')
+        xhr.send('userToken=' + userToken)
+        const result = JSON.parse(xhr.responseText)
         if (!common.isEmpty(result) && result.code === 200) {
-          store.commit("loadCurrentUser", result.data);
-          localStorage.setItem("userToken", result.data.accessToken);
-          window.location.href = constant.imURL;
-          next();
+          store.commit('loadCurrentUser', result.data)
+          localStorage.setItem('userToken', result.data.accessToken)
+          window.location.href = constant.imURL
+          next()
         } else {
-          window.location.href = constant.webBaseURL;
+          window.location.href = constant.webBaseURL
         }
-      } else if (Boolean(localStorage.getItem("userToken"))) {
-        next();
+      } else if ((localStorage.getItem('userToken'))) {
+        next()
       } else {
-        window.location.href = constant.webBaseURL;
+        window.location.href = constant.webBaseURL
       }
     } else {
-      if (Boolean(localStorage.getItem("userToken"))) {
-        next();
+      if ((localStorage.getItem('userToken'))) {
+        next()
       } else {
-        window.location.href = constant.webBaseURL;
+        window.location.href = constant.webBaseURL
       }
     }
   } else {
-    next();
+    next()
   }
 })
 

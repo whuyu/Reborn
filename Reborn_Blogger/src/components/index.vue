@@ -14,10 +14,18 @@
                   class="background-image-index"
                   v-once
                   lazy
-                  :src="require('@/assets/images/backgroundPicture.jpg')"
+                  :src="$store.state.webInfo.backgroundImage"
                   fit="cover">
           <div slot="error" class="image-slot background-image-index-error"></div>
         </el-image>
+<!--          <el-image style="animation: header-effect 2s"-->
+<!--                    class="background-image-index"-->
+<!--                    v-once-->
+<!--                    lazy-->
+<!--                    :src="require('@/assets/image/2048px-20190406-DSC5193_Panteon.jpg')"-->
+<!--                    fit="cover">-->
+<!--          <div slot="error" class="image-slot background-image-index-error"></div>-->
+<!--        </el-image>-->
         <!-- 首页文字 -->
         <div class="signature-wall myCenter my-animation-hideToShow">
           <h1 class="playful">
@@ -161,9 +169,13 @@
         </div>
       </div>
     </el-dialog>
+    <el-image src="C:\Users\c\IdeaProjects\Reborn\poetize-vue2-master\src\assets\image\2048px-20190406-DSC5193_Panteon.jpg"></el-image>
   </div>
+
 </template>
 <script>
+  import store from "@/store";
+
   const loader = () => import( "./common/loader");
   const zombie = () => import( "./common/zombie");
   const printer = () => import( "./common/printer");
@@ -218,6 +230,9 @@
     },
 
     computed: {
+      store() {
+        return store
+      },
       sortInfo() {
         return this.$store.state.sortInfo;
       }

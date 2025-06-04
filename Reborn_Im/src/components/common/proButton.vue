@@ -7,22 +7,22 @@
 </template>
 
 <script>
-  export default {
-    props: {
-      info: {
-        type: String,
-        default: "确定"
-      },
-      before: {
-        type: String,
-        default: "black"
-      },
-      after: {
-        type: String,
-        default: "linear-gradient(45deg, #f43f3b, #ec008c)"
-      }
+export default {
+  props: {
+    info: {
+      type: String,
+      default: '确定'
+    },
+    before: {
+      type: String,
+      default: 'black'
+    },
+    after: {
+      type: String,
+      default: 'linear-gradient(45deg, #f43f3b, #ec008c)'
     }
   }
+}
 </script>
 
 <style scoped>

@@ -1,4 +1,4 @@
-import ReconnectingWebSocket from 'reconnecting-websocket';
+import ReconnectingWebSocket from 'reconnecting-websocket'
 
 /**
  * @param {*} ws_protocol wss or ws
@@ -31,7 +31,7 @@ class Tiows {
     ws.binaryType = this.binaryType;
 
     ws.onopen = function (event) {
-      //获取离线消息
+      // 获取离线消息
     }
 
     ws.onclose = function (event) {

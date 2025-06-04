@@ -76,11 +76,18 @@ public class LocalUtil implements StoreService {
                 throw new PoetryRuntimeException("文件路径不合法！");
             }
         }
-        String absolutePath = uploadUrl + path;
+        String absolutePath;
+        if("vue2".equals(fileVO.getProjectType())){
+            absolutePath = "C:/Users/c/IdeaProjects/Reborn/poetize-vue2-master" + uploadUrl + path;
+        }else {
+            absolutePath = "C:/Users/c/IdeaProjects/Reborn/poetize-im-vue3-master" + uploadUrl + path;
+        }
         if (FileUtil.exist(absolutePath)) {
             throw new PoetryRuntimeException("文件已存在！");
         }
         try {
+            System.out.println("uploadUrl value: " + uploadUrl); // 启动时打印值
+            System.out.println("absoluteUrl value: " + absolutePath); // 启动时打印值
             File newFile = FileUtil.touch(absolutePath);
             fileVO.getFile().transferTo(newFile);
             FileVO result = new FileVO();
