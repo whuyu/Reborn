@@ -19,4 +19,6 @@ public class FileVO {
     private MultipartFile file;
 
     private String originalName;
+
+    private String projectType;
 }

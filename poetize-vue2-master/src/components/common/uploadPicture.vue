@@ -119,9 +119,11 @@
           fd.append("relativePath", key);
           fd.append("type", this.prefix);
           fd.append("storeType", this.storeType);
+          fd.append("projectType", "vue2")
 
           return this.$http.upload(this.$constant.baseURL + "/resource/upload", fd, this.isAdmin, options);
-        } else if (this.storeType === "qiniu") {
+        }
+        else if (this.storeType === "qiniu") {
           const xhr = new XMLHttpRequest();
           xhr.open('get', this.$constant.baseURL + "/qiniu/getUpToken?key=" + key, false);
           if (this.isAdmin) {

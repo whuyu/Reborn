@@ -1,4 +1,4 @@
-import ReconnectingWebSocket from 'reconnecting-websocket';
+import ReconnectingWebSocket from 'reconnecting-websocket'
 
 /**
  * @param {*} ws_protocol wss or ws
@@ -8,29 +8,28 @@ import ReconnectingWebSocket from 'reconnecting-websocket';
  * @param {*} binaryType 'blob' or 'arraybuffer'
  */
 export default function (ws_protocol, ip, port, paramStr, binaryType) {
+  this.ws_protocol = ws_protocol
+  this.ip = ip
+  this.port = port
+  this.paramStr = paramStr
+  this.binaryType = binaryType
 
-  this.ws_protocol = ws_protocol;
-  this.ip = ip;
-  this.port = port;
-  this.paramStr = paramStr;
-  this.binaryType = binaryType;
-
-  if (port === "") {
-    this.url = ws_protocol + '://' + ip + '/socket';
+  if (port === '') {
+    this.url = ws_protocol + '://' + ip + '/socket'
   } else {
-    this.url = ws_protocol + '://' + ip + ":" + port + '/socket';
+    this.url = ws_protocol + '://' + ip + ':' + port + '/socket'
   }
   if (paramStr) {
-    this.url += '?' + paramStr;
+    this.url += '?' + paramStr
   }
 
   this.connect = () => {
-    let ws = new ReconnectingWebSocket(this.url);
-    this.ws = ws;
-    ws.binaryType = this.binaryType;
+    const ws = new ReconnectingWebSocket(this.url)
+    this.ws = ws
+    ws.binaryType = this.binaryType
 
     ws.onopen = function (event) {
-      //获取离线消息
+      // 获取离线消息
     }
 
     ws.onclose = function (event) {
@@ -43,6 +42,6 @@ export default function (ws_protocol, ip, port, paramStr, binaryType) {
   }
 
   this.send = (data) => {
-    this.ws.send(data);
+    this.ws.send(data)
   }
 }

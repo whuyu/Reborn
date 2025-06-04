@@ -1,6 +1,6 @@
 import common from './common'
 
-function getError(
+function getError (
   action,
   option,
   xhr
@@ -17,7 +17,7 @@ function getError(
   return new Error(msg)
 }
 
-function getBody(xhr) {
+function getBody (xhr) {
   const text = xhr.responseText || xhr.response
   if (!text) {
     return text

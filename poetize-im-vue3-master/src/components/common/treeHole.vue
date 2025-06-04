@@ -42,41 +42,41 @@
 </template>
 
 <script>
-  export default {
-    props: {
-      treeHoleList: {
-        type: Array
-      },
-      avatar: {
-        type: String
-      }
+export default {
+  props: {
+    treeHoleList: {
+      type: Array
     },
+    avatar: {
+      type: String
+    }
+  },
 
-    data() {
-      return {}
+  data () {
+    return {}
+  },
+
+  computed: {},
+
+  watch: {},
+
+  created () {
+
+  },
+
+  mounted () {
+
+  },
+
+  methods: {
+    launch () {
+      this.$emit('launch')
     },
-
-    computed: {},
-
-    watch: {},
-
-    created() {
-
-    },
-
-    mounted() {
-
-    },
-
-    methods: {
-      launch() {
-        this.$emit("launch");
-      },
-      deleteTreeHole(id) {
-        this.$emit("deleteTreeHole", id);
-      }
+    deleteTreeHole (id) {
+      this.$emit('deleteTreeHole', id)
     }
   }
+}
 </script>
 
 <style scoped>
